@@ -1,15 +1,14 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from "framer-motion";
+import { NavLink } from "react-router-dom";
 
 const navItems = [
-  { name: 'Dashboard', path: '/' },
-  { name: 'Subjects', path: '/subjects' },
-  { name: 'Tasks', path: '/tasks' },
-  { name: 'Focus Timer', path: '/timer' },
-  { name: 'Analytics', path: '/analytics' },
-  { name: 'Schedule', path: '/schedule' },
-  { name: 'Settings', path: '/settings' },
+  { name: "Dashboard", path: "/dashboard" },
+  { name: "Subjects", path: "/subjects" },
+  { name: "Tasks", path: "/tasks" },
+  { name: "Focus Timer", path: "/focus" },
+  { name: "Analytics", path: "/analytics" },
+  { name: "Schedule", path: "/schedule" },
+  { name: "Settings", path: "/settings" },
 ];
 
 export default function Sidebar() {
@@ -33,14 +32,17 @@ export default function Sidebar() {
             to={item.path}
             className={({ isActive }) => `
               relative flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group
-              ${isActive ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5'}
+              ${isActive ? "text-white bg-white/10" : "text-gray-400 hover:text-white hover:bg-white/5"}
             `}
           >
             {({ isActive }) => (
               <>
                 <span className="relative z-10 font-medium">{item.name}</span>
                 {isActive && (
-                  <motion.div layoutId="sidebar-active" className="absolute inset-0 rounded-lg bg-indigo-500/10 border border-indigo-500/20 z-0" />
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute inset-0 rounded-lg bg-indigo-500/10 border border-indigo-500/20 z-0"
+                  />
                 )}
               </>
             )}

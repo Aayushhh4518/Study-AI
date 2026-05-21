@@ -1,17 +1,23 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export function Card({ children, className = '', hover = false, ...props }) {
-  const Component = hover ? motion.div : 'div';
-  const hoverProps = hover ? { whileHover: { y: -4, transition: { duration: 0.2 } } } : {};
-
+export function Card({ children, className = '', noPadding = false, ...props }) {
   return (
-    <Component
-      className={`bg-white/[0.03] border border-white/[0.08] rounded-2xl backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] p-6 ${className}`}
-      {...hoverProps}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl ${
+        noPadding ? '' : 'p-6'
+      } ${className}`}
       {...props}
     >
-      {children}
-    </Component>
+      {/* Subtle top glow effect for premium feel */}
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+      
+      <div className="relative z-10">
+        {children}
+      </div>
+    </motion.div>
   );
 }
