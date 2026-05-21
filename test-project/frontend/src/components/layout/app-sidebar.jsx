@@ -6,9 +6,13 @@ import {
   Brain,
   CalendarDays,
   CheckSquare,
+  ChevronRight,
   LayoutDashboard,
   Settings,
+  Sparkles,
 } from "lucide-react";
+
+import { motion } from "framer-motion";
 
 const navItems = [
   {
@@ -55,16 +59,36 @@ export default function AppSidebar() {
         hidden
         lg:flex
         flex-col
-        w-[280px]
+        w-[290px]
+        min-h-screen
+        relative
         border-r
         border-white/10
-        bg-[#070B14]/80
-        backdrop-blur-2xl
+        bg-[#060816]/90
+        backdrop-blur-3xl
+        overflow-hidden
       "
     >
+      {/* BACKGROUND GLOW */}
+      <div
+        className="
+          absolute
+          top-0
+          left-0
+          h-[300px]
+          w-[300px]
+          bg-violet-500/10
+          blur-[120px]
+          rounded-full
+          pointer-events-none
+        "
+      />
+
       {/* LOGO */}
       <div
         className="
+          relative
+          z-10
           flex
           items-center
           gap-4
@@ -74,32 +98,36 @@ export default function AppSidebar() {
           border-white/10
         "
       >
-        <div
+        <motion.div
+          whileHover={{ scale: 1.05 }}
           className="
             h-14
             w-14
             rounded-2xl
             bg-gradient-to-br
             from-violet-500
-            to-blue-500
+            via-blue-500
+            to-cyan-400
             flex
             items-center
             justify-center
-            shadow-[0_0_40px_rgba(99,102,241,0.35)]
+            shadow-[0_0_45px_rgba(99,102,241,0.45)]
           "
         >
-          <span className="text-xl font-bold">S</span>
-        </div>
+          <span className="text-xl font-bold text-white">S</span>
+        </motion.div>
 
         <div>
-          <h2 className="text-xl font-bold">StudyAI</h2>
+          <h2 className="text-xl font-bold tracking-wide text-white">
+            StudyAI
+          </h2>
 
-          <p className="text-sm text-zinc-500">Productivity OS</p>
+          <p className="text-sm text-zinc-500">AI Productivity OS</p>
         </div>
       </div>
 
       {/* NAVIGATION */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="relative z-10 flex-1 px-4 py-6 space-y-3">
         {navItems.map((item) => {
           const Icon = item.icon;
 
@@ -129,12 +157,12 @@ export default function AppSidebar() {
                         border
                         border-violet-500/20
                         text-white
-                        shadow-[0_0_30px_rgba(99,102,241,0.15)]
+                        shadow-[0_0_35px_rgba(99,102,241,0.18)]
                       `
                       : `
                         text-zinc-400
                         hover:text-white
-                        hover:bg-white/[0.04]
+                        hover:bg-white/[0.05]
                       `
                   }
                 `
@@ -142,24 +170,27 @@ export default function AppSidebar() {
             >
               {({ isActive }) => (
                 <>
-                  {/* ACTIVE GLOW */}
+                  {/* ACTIVE SIDE LINE */}
                   {isActive && (
-                    <div
+                    <motion.div
+                      layoutId="active-pill"
                       className="
                         absolute
-                        inset-y-0
                         left-0
+                        top-2
+                        bottom-2
                         w-1
                         rounded-full
                         bg-gradient-to-b
                         from-violet-400
-                        to-blue-400
+                        to-cyan-400
                       "
                     />
                   )}
 
+                  {/* ICON */}
                   <div
-                    className="
+                    className={`
                       h-11
                       w-11
                       rounded-xl
@@ -169,12 +200,42 @@ export default function AppSidebar() {
                       border
                       transition-all
                       duration-300
-                    "
+                      ${
+                        isActive
+                          ? `
+                            border-violet-400/30
+                            bg-violet-500/10
+                            text-violet-300
+                          `
+                          : `
+                            border-white/10
+                            bg-white/[0.03]
+                            group-hover:bg-white/[0.06]
+                          `
+                      }
+                    `}
                   >
-                    <Icon size={20} />
+                    <Icon size={19} />
                   </div>
 
-                  <span className="font-medium text-[15px]">{item.name}</span>
+                  {/* TEXT */}
+                  <span className="font-medium text-[15px] tracking-wide">
+                    {item.name}
+                  </span>
+
+                  {/* ARROW */}
+                  <ChevronRight
+                    size={16}
+                    className="
+                      ml-auto
+                      opacity-0
+                      translate-x-2
+                      transition-all
+                      duration-300
+                      group-hover:opacity-100
+                      group-hover:translate-x-0
+                    "
+                  />
                 </>
               )}
             </NavLink>
@@ -182,41 +243,86 @@ export default function AppSidebar() {
         })}
       </nav>
 
-      {/* BOTTOM CARD */}
-      <div className="p-4">
+      {/* BOTTOM AI CARD */}
+      <div className="relative z-10 p-4">
         <div
           className="
+            relative
+            overflow-hidden
             rounded-3xl
             border
             border-white/10
             bg-gradient-to-br
             from-violet-500/10
-            to-blue-500/10
+            via-blue-500/5
+            to-cyan-500/10
             p-5
+            backdrop-blur-xl
           "
         >
-          <h3 className="font-semibold text-lg">AI Productivity</h3>
-
-          <p className="text-sm text-zinc-400 mt-2">
-            Your study performance increased by 18% this week.
-          </p>
-
-          <button
+          {/* INNER GLOW */}
+          <div
             className="
-              mt-4
-              w-full
-              rounded-2xl
-              bg-gradient-to-r
-              from-violet-500
-              to-blue-500
-              py-3
-              font-medium
-              transition-all
-              hover:scale-[1.02]
+              absolute
+              -top-10
+              -right-10
+              h-32
+              w-32
+              rounded-full
+              bg-violet-500/20
+              blur-3xl
             "
-          >
-            View Insights
-          </button>
+          />
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-3">
+              <div
+                className="
+                  h-12
+                  w-12
+                  rounded-2xl
+                  bg-gradient-to-br
+                  from-violet-500
+                  to-cyan-500
+                  flex
+                  items-center
+                  justify-center
+                  shadow-[0_0_35px_rgba(99,102,241,0.35)]
+                "
+              >
+                <Sparkles size={20} />
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-white">AI Productivity</h3>
+
+                <p className="text-xs text-zinc-400">Smart learning insights</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-zinc-300 mt-5 leading-relaxed">
+              Your focus consistency improved by 18% this week.
+            </p>
+
+            <button
+              className="
+                mt-5
+                w-full
+                rounded-2xl
+                bg-gradient-to-r
+                from-violet-500
+                to-blue-500
+                py-3
+                font-medium
+                transition-all
+                duration-300
+                hover:scale-[1.02]
+                hover:shadow-[0_0_35px_rgba(99,102,241,0.35)]
+              "
+            >
+              View Insights
+            </button>
+          </div>
         </div>
       </div>
     </aside>
