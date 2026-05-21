@@ -4,9 +4,12 @@ import {
   BrowserRouter as Router,
   Routes,
 } from "react-router-dom";
+
 import DashboardShell from "./components/layout/dashboard-shell";
 import PageContainer from "./components/layout/PageContainer";
+
 import Dashboard from "./pages/Dashboard";
+import Subjects from "./pages/Subjects";
 
 // Temporary placeholders for routing safety
 function PlaceholderPage({ title }) {
@@ -26,13 +29,13 @@ function App() {
         <Route path="/" element={<DashboardShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
 
+          {/* DASHBOARD */}
           <Route path="dashboard" element={<Dashboard />} />
 
-          <Route
-            path="subjects"
-            element={<PlaceholderPage title="Subjects" />}
-          />
+          {/* SUBJECTS */}
+          <Route path="subjects" element={<Subjects />} />
 
+          {/* PLACEHOLDER ROUTES */}
           <Route path="tasks" element={<PlaceholderPage title="Tasks" />} />
 
           <Route
