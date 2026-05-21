@@ -1,4 +1,5 @@
 /* stylelint-disable at-rule-no-unknown */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,25 +17,30 @@ body,
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: Inter, sans-serif;
+
   background:
     radial-gradient(
       circle at top left,
       rgba(99, 102, 241, 0.18),
-      transparent 30%
+      transparent 25%
     ),
     radial-gradient(
       circle at top right,
-      rgba(168, 85, 247, 0.12),
+      rgba(168, 85, 247, 0.14),
       transparent 30%
     ),
     radial-gradient(
-      circle at bottom,
-      rgba(59, 130, 246, 0.08),
+      circle at bottom center,
+      rgba(59, 130, 246, 0.12),
       transparent 35%
     ),
-    #050505;
+    linear-gradient(180deg, #050816 0%, #070b14 45%, #030712 100%);
 
   color: white;
 
@@ -47,19 +53,25 @@ body {
   box-sizing: border-box;
 }
 
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: white;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090909;
+  background: #050816;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: linear-gradient(to bottom, #8b5cf6, #3b82f6);
+
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.16);
+  opacity: 0.8;
 }
