@@ -10,6 +10,8 @@ import {
 
 import PremiumCard from "../components/ui/premium-card";
 
+import ProductivityChart from "../components/dashboard/productivity-chart";
+
 const stats = [
   {
     title: "Study Hours",
@@ -99,7 +101,9 @@ export default function Dashboard() {
               AI Productivity Mode
             </p>
 
-            <p className="text-xs text-zinc-400">Smart insights enabled</p>
+            <p className="text-xs text-zinc-400">
+              Smart insights enabled
+            </p>
           </div>
         </div>
       </div>
@@ -132,13 +136,17 @@ export default function Dashboard() {
 
               <div className="relative z-10 flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-zinc-400">{stat.title}</p>
+                  <p className="text-sm text-zinc-400">
+                    {stat.title}
+                  </p>
 
                   <h2 className="text-4xl font-bold mt-3 text-white">
                     {stat.value}
                   </h2>
 
-                  <p className="text-sm text-zinc-500 mt-2">{stat.subtitle}</p>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    {stat.subtitle}
+                  </p>
                 </div>
 
                 <div
@@ -152,7 +160,10 @@ export default function Dashboard() {
                     flex items-center justify-center
                   "
                 >
-                  <Icon size={30} className="text-violet-300" />
+                  <Icon
+                    size={30}
+                    className="text-violet-300"
+                  />
                 </div>
               </div>
             </PremiumCard>
@@ -194,19 +205,19 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* REAL CHART */}
           <div
             className="
               h-[320px]
               rounded-3xl
-              border border-dashed border-white/10
+              border border-white/10
               bg-gradient-to-br
               from-white/[0.03]
               to-white/[0.01]
-              flex items-center justify-center
-              text-zinc-500
+              p-4
             "
           >
-            Recharts analytics will appear here.
+            <ProductivityChart />
           </div>
         </PremiumCard>
 
@@ -218,7 +229,9 @@ export default function Dashboard() {
                 AI Assistant
               </h3>
 
-              <p className="text-zinc-400 mt-1">Smart productivity insights</p>
+              <p className="text-zinc-400 mt-1">
+                Smart productivity insights
+              </p>
             </div>
 
             <div
@@ -250,7 +263,9 @@ export default function Dashboard() {
                   hover:bg-white/[0.06]
                 "
               >
-                <p className="text-zinc-300 text-sm">{item}</p>
+                <p className="text-zinc-300 text-sm">
+                  {item}
+                </p>
               </div>
             ))}
           </div>
