@@ -6,10 +6,13 @@ import {
   MoonStar,
   Shield,
   Sparkles,
+  Sun,
   User,
 } from "lucide-react";
 
 import PremiumCard from "../components/ui/premium-card";
+
+import { useTheme } from "../context/ThemeContext";
 
 const settingsCards = [
   {
@@ -30,15 +33,11 @@ const settingsCards = [
     icon: Bell,
     color: "from-pink-500 to-rose-500",
   },
-  {
-    title: "Appearance",
-    desc: "Manage themes and dashboard visuals.",
-    icon: MoonStar,
-    color: "from-emerald-500 to-green-500",
-  },
 ];
 
 export default function Settings() {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -185,6 +184,105 @@ export default function Settings() {
             </PremiumCard>
           );
         })}
+
+        {/* APPEARANCE CARD */}
+        <PremiumCard
+          className="
+            p-6
+            relative
+            overflow-hidden
+          "
+        >
+          <div
+            className="
+              absolute
+              top-0
+              right-0
+              h-32
+              w-32
+              rounded-full
+              blur-3xl
+              opacity-20
+              bg-gradient-to-br
+              from-emerald-500
+              to-cyan-500
+            "
+          />
+
+          <div className="relative z-10">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Appearance
+                </h2>
+
+                <p className="text-zinc-400 mt-3 max-w-sm">
+                  Switch between premium dark and light themes.
+                </p>
+              </div>
+
+              <div
+                className="
+                  h-14
+                  w-14
+                  rounded-2xl
+                  bg-gradient-to-br
+                  from-emerald-500
+                  to-cyan-500
+                  flex items-center justify-center
+                  shadow-[0_0_30px_rgba(16,185,129,0.25)]
+                "
+              >
+                {theme === "dark" ? (
+                  <MoonStar size={24} />
+                ) : (
+                  <Sun size={24} />
+                )}
+              </div>
+            </div>
+
+            <div className="mt-8 flex items-center gap-4">
+              <button
+                onClick={toggleTheme}
+                className="
+                  rounded-2xl
+                  bg-gradient-to-r
+                  from-violet-500
+                  to-blue-500
+                  px-6
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition-all
+                  hover:scale-[1.03]
+                  hover:shadow-[0_0_30px_rgba(99,102,241,0.35)]
+                "
+              >
+                {theme === "dark"
+                  ? "Switch to Light Mode"
+                  : "Switch to Dark Mode"}
+              </button>
+
+              <div
+                className="
+                  rounded-xl
+                  border border-white/10
+                  bg-white/[0.04]
+                  px-4
+                  py-2
+                  text-sm
+                  text-zinc-300
+                "
+              >
+                Active Theme:
+                <span className="ml-2 font-semibold capitalize text-white">
+                  {theme}
+                </span>
+              </div>
+            </div>
+          </div>
+        </PremiumCard>
       </div>
 
       {/* SECURITY PANEL */}
@@ -244,7 +342,7 @@ export default function Settings() {
                 {item.label}
               </p>
 
-              <h4 className="text-xl font-semibold mt-2">
+              <h4 className="text-xl font-semibold mt-2 text-white">
                 {item.value}
               </h4>
             </div>

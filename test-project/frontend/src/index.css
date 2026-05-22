@@ -4,9 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ROOT */
+
 :root {
   color-scheme: dark;
 }
+
+/* GLOBAL */
 
 html,
 body,
@@ -21,9 +25,30 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
-  font-family: Inter, sans-serif;
+/* GLOBAL TRANSITIONS */
 
+html,
+body,
+div,
+button,
+section,
+aside,
+header,
+main,
+nav,
+input,
+textarea {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease,
+    box-shadow 0.35s ease,
+    transform 0.25s ease;
+}
+
+/* DARK MODE */
+
+html.dark body {
   background:
     radial-gradient(
       circle at top left,
@@ -40,7 +65,12 @@ body {
       rgba(59, 130, 246, 0.12),
       transparent 35%
     ),
-    linear-gradient(180deg, #050816 0%, #070b14 45%, #030712 100%);
+    linear-gradient(
+      180deg,
+      #050816 0%,
+      #070b14 45%,
+      #030712 100%
+    );
 
   color: white;
 
@@ -49,14 +79,111 @@ body {
   background-attachment: fixed;
 }
 
+/* LIGHT MODE */
+
+html.light body {
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(99, 102, 241, 0.10),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(59, 130, 246, 0.08),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at bottom center,
+      rgba(14, 165, 233, 0.08),
+      transparent 35%
+    ),
+    linear-gradient(
+      180deg,
+      #f8fafc 0%,
+      #eef2ff 45%,
+      #e2e8f0 100%
+    );
+
+  color: #0f172a;
+
+  overflow-x: hidden;
+
+  background-attachment: fixed;
+}
+
+/* LIGHT MODE TEXT */
+
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6,
+html.light p,
+html.light span,
+html.light label,
+html.light button {
+  color: #0f172a;
+}
+
+/* LIGHT MODE SECONDARY TEXT */
+
+html.light .text-zinc-400,
+html.light .text-zinc-500 {
+  color: #475569 !important;
+}
+
+/* LIGHT MODE CARDS */
+
+html.light .glass-card {
+  background: rgba(255,255,255,0.72);
+
+  border: 1px solid rgba(15,23,42,0.08);
+
+  backdrop-filter: blur(20px);
+
+  box-shadow:
+    0 10px 40px rgba(15,23,42,0.06);
+}
+
+/* LIGHT MODE SIDEBAR */
+
+html.light aside {
+  background: rgba(255,255,255,0.75) !important;
+
+  border-color: rgba(15,23,42,0.08) !important;
+}
+
+/* LIGHT MODE NAVBAR */
+
+html.light header {
+  background: rgba(255,255,255,0.65) !important;
+
+  border-color: rgba(15,23,42,0.08) !important;
+}
+
+/* GLOBAL */
+
+body {
+  font-family: Inter, sans-serif;
+}
+
+/* BOX SIZING */
+
 * {
   box-sizing: border-box;
 }
 
+/* SELECTION */
+
 ::selection {
   background: rgba(99, 102, 241, 0.35);
+
   color: white;
 }
+
+/* SCROLLBAR */
 
 ::-webkit-scrollbar {
   width: 10px;
@@ -67,7 +194,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #8b5cf6, #3b82f6);
+  background:
+    linear-gradient(
+      to bottom,
+      #8b5cf6,
+      #3b82f6
+    );
 
   border-radius: 999px;
 }

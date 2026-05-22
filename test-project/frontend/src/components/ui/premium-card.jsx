@@ -1,10 +1,15 @@
 import clsx from "clsx";
 
-export default function PremiumCard({ children, className = "" }) {
+export default function PremiumCard({
+  children,
+  className = "",
+}) {
   return (
     <div
       className={clsx(
         `
+          glass-card
+
           relative
           overflow-hidden
           rounded-[28px]
@@ -29,7 +34,7 @@ export default function PremiumCard({ children, className = "" }) {
         className,
       )}
     >
-      {/* TOP LIGHT GLOW */}
+      {/* TOP LIGHT */}
       <div
         className="
           absolute
@@ -71,7 +76,9 @@ export default function PremiumCard({ children, className = "" }) {
         "
       />
 
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   );
 }

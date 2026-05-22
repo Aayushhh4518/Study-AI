@@ -1,3 +1,9 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { motion } from "framer-motion";
 
 import {
@@ -7,7 +13,62 @@ import {
   TimerReset,
 } from "lucide-react";
 
-export default function Focus() {
+import PremiumCard from "../components/ui/premium-card";
+
+const TOTAL_TIME = 25 * 60;
+
+export default function FocusTimer() {
+  const [secondsLeft, setSecondsLeft] =
+    useState(TOTAL_TIME);
+
+  const [isRunning, setIsRunning] =
+    useState(false);
+
+  const [sessionsCompleted, setSessionsCompleted] =
+    useState(8);
+
+  /* TIMER EFFECT */
+
+  useEffect(() => {
+    let interval;
+
+    if (isRunning) {
+      interval = setInterval(() => {
+        setSecondsLeft((prev) => {
+          if (prev <= 1) {
+            setIsRunning(false);
+            setSessionsCompleted((count) => count + 1);
+            return 0;
+          }
+
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  /* FORMAT TIME */
+
+  const minutes = String(
+    Math.floor(secondsLeft / 60),
+  ).padStart(2, "0");
+
+  const seconds = String(
+    secondsLeft % 60,
+  ).padStart(2, "0");
+
+  /* PROGRESS */
+
+  const progress = useMemo(() => {
+    return (
+      ((TOTAL_TIME - secondsLeft) /
+        TOTAL_TIME) *
+      100
+    );
+  }, [secondsLeft]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -40,49 +101,18 @@ export default function Focus() {
 
       {/* MAIN GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* TIMER SECTION */}
-        <div
+        {/* TIMER */}
+        <PremiumCard
           className="
             xl:col-span-2
-            relative
-            overflow-hidden
-            rounded-[36px]
-            border border-white/10
-            bg-white/[0.04]
-            backdrop-blur-2xl
             p-10
             min-h-[580px]
+            flex
+            items-center
+            justify-center
           "
         >
-          {/* glow */}
-          <div
-            className="
-              absolute
-              inset-0
-              bg-gradient-to-br
-              from-violet-500/10
-              via-transparent
-              to-cyan-500/10
-            "
-          />
-
-          {/* floating glow */}
-          <div
-            className="
-              absolute
-              top-1/2
-              left-1/2
-              -translate-x-1/2
-              -translate-y-1/2
-              h-[420px]
-              w-[420px]
-              rounded-full
-              bg-violet-500/20
-              blur-3xl
-            "
-          />
-
-          <div className="relative z-10 flex flex-col items-center justify-center h-full">
+          <div className="flex flex-col items-center">
             {/* TITLE */}
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-white">
@@ -94,45 +124,72 @@ export default function Focus() {
               </p>
             </div>
 
-            {/* TIMER RING */}
-            <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 40px rgba(139,92,246,0.25)",
-                  "0 0 80px rgba(59,130,246,0.35)",
-                  "0 0 40px rgba(139,92,246,0.25)",
-                ],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 4,
-              }}
-              className="
-                relative
-                h-[320px]
-                w-[320px]
-                rounded-full
-                border-[14px]
-                border-violet-500/30
-                flex
-                items-center
-                justify-center
-                bg-black/20
-                backdrop-blur-3xl
-              "
-            >
-              {/* INNER RING */}
+            {/* PROGRESS RING */}
+            <div className="relative h-[320px] w-[320px]">
+              {/* BACKGROUND */}
+              <svg
+                className="absolute inset-0"
+                width="320"
+                height="320"
+              >
+                <circle
+                  cx="160"
+                  cy="160"
+                  r="140"
+                  stroke="rgba(255,255,255,0.08)"
+                  strokeWidth="14"
+                  fill="transparent"
+                />
+
+                {/* PROGRESS */}
+                <motion.circle
+                  cx="160"
+                  cy="160"
+                  r="140"
+                  stroke="url(#gradient)"
+                  strokeWidth="14"
+                  fill="transparent"
+                  strokeLinecap="round"
+                  strokeDasharray={879.6}
+                  strokeDashoffset={
+                    879.6 -
+                    (879.6 * progress) / 100
+                  }
+                  transform="rotate(-90 160 160)"
+                />
+
+                <defs>
+                  <linearGradient
+                    id="gradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor="#8b5cf6"
+                    />
+
+                    <stop
+                      offset="100%"
+                      stopColor="#3b82f6"
+                    />
+                  </linearGradient>
+                </defs>
+              </svg>
+
+              {/* TIMER */}
               <div
                 className="
                   absolute
-                  inset-5
-                  rounded-full
-                  border border-white/10
+                  inset-0
+                  flex
+                  flex-col
+                  items-center
+                  justify-center
                 "
-              />
-
-              {/* TIMER */}
-              <div className="text-center">
+              >
                 <h1
                   className="
                     text-7xl
@@ -141,18 +198,22 @@ export default function Focus() {
                     text-white
                   "
                 >
-                  25:00
+                  {minutes}:{seconds}
                 </h1>
 
                 <p className="text-zinc-400 mt-4 text-lg">
                   Focus Time Remaining
                 </p>
               </div>
-            </motion.div>
+            </div>
 
             {/* CONTROLS */}
             <div className="flex items-center gap-5 mt-14">
+              {/* PAUSE */}
               <button
+                onClick={() =>
+                  setIsRunning(false)
+                }
                 className="
                   h-16
                   w-16
@@ -167,7 +228,11 @@ export default function Focus() {
                 <Pause size={24} />
               </button>
 
+              {/* PLAY */}
               <button
+                onClick={() =>
+                  setIsRunning(true)
+                }
                 className="
                   h-20
                   w-20
@@ -184,7 +249,13 @@ export default function Focus() {
                 <Play size={30} />
               </button>
 
+              {/* RESET */}
               <button
+                onClick={() => {
+                  setSecondsLeft(TOTAL_TIME);
+
+                  setIsRunning(false);
+                }}
                 className="
                   h-16
                   w-16
@@ -200,20 +271,12 @@ export default function Focus() {
               </button>
             </div>
           </div>
-        </div>
+        </PremiumCard>
 
         {/* SIDE PANEL */}
         <div className="space-y-6">
-          {/* SESSION CARD */}
-          <div
-            className="
-              rounded-[32px]
-              border border-white/10
-              bg-white/[0.04]
-              p-7
-              backdrop-blur-2xl
-            "
-          >
+          {/* STATS */}
+          <PremiumCard className="p-7">
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-bold text-white">
                 Session Stats
@@ -233,7 +296,7 @@ export default function Focus() {
                 },
                 {
                   label: "Completed Sessions",
-                  value: "8",
+                  value: sessionsCompleted,
                 },
                 {
                   label: "Productivity Score",
@@ -259,28 +322,19 @@ export default function Focus() {
                 </div>
               ))}
             </div>
-          </div>
+          </PremiumCard>
 
-          {/* AI RECOMMENDATION */}
-          <div
-            className="
-              rounded-[32px]
-              border border-white/10
-              bg-gradient-to-br
-              from-violet-500/10
-              to-blue-500/10
-              p-7
-              backdrop-blur-2xl
-            "
-          >
+          {/* AI PANEL */}
+          <PremiumCard className="p-7">
             <h3 className="text-2xl font-bold text-white">
               AI Focus Tip
             </h3>
 
             <p className="text-zinc-300 mt-5 leading-relaxed">
-              Your highest productivity is detected between
-              7PM and 9PM. AI recommends a 5-minute break
-              after every 25-minute session.
+              Your productivity increases significantly
+              during uninterrupted 25-minute sessions.
+              AI recommends a 5-minute recovery break
+              after each cycle.
             </p>
 
             <button
@@ -299,7 +353,7 @@ export default function Focus() {
             >
               Optimize Focus Plan
             </button>
-          </div>
+          </PremiumCard>
         </div>
       </div>
     </motion.div>
