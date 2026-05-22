@@ -9,6 +9,7 @@ import DashboardShell from "./components/layout/dashboard-shell";
 import PageContainer from "./components/layout/PageContainer";
 
 import Dashboard from "./pages/Dashboard";
+import FocusTimer from "./pages/FocusTimer";
 import Subjects from "./pages/Subjects";
 import Tasks from "./pages/Tasks";
 
@@ -41,7 +42,7 @@ function App() {
 
           <Route
             path="focus"
-            element={<PlaceholderPage title="Focus Timer" />}
+            element={<FocusTimer />}
           />
 
           <Route
