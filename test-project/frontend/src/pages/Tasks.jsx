@@ -1,131 +1,314 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { CheckSquare, Plus, Trash2 } from 'lucide-react';
-import { useData } from '../store/DataContext';
-import Modal from '../components/ui/Modal';
+import { motion } from "framer-motion";
+
+import {
+  CheckCircle2,
+  Clock3,
+  Flame,
+  Plus,
+} from "lucide-react";
+
+const tasks = [
+  {
+    title: "Complete DSA Revision",
+    priority: "High",
+    time: "2 Hours",
+    completed: false,
+    color: "from-red-500 to-orange-500",
+  },
+  {
+    title: "Study Operating Systems",
+    priority: "Medium",
+    time: "1.5 Hours",
+    completed: true,
+    color: "from-emerald-500 to-green-500",
+  },
+  {
+    title: "AI Research Notes",
+    priority: "Low",
+    time: "45 Minutes",
+    completed: false,
+    color: "from-cyan-500 to-blue-500",
+  },
+  {
+    title: "DBMS Practice Questions",
+    priority: "High",
+    time: "3 Hours",
+    completed: false,
+    color: "from-violet-500 to-indigo-500",
+  },
+];
 
 export default function Tasks() {
-  const { data, addTask, toggleTask, deleteTask, searchQuery } = useData();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', due: '', priority: 'Medium', color: 'bg-indigo-500' });
-
-  const filteredTasks = data.tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!newTask.title.trim()) return;
-    addTask(newTask);
-    setNewTask({ title: '', due: '', priority: 'Medium', color: 'bg-indigo-500' });
-    setIsModalOpen(false);
-  };
-
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-7xl mx-auto flex flex-col gap-8 pb-12"
+      transition={{ duration: 0.4 }}
+      className="space-y-8"
     >
-      <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Tasks</h1>
-          <p className="text-slate-400">Track your assignments and upcoming deadlines.</p>
+          <h1
+            className="
+              text-5xl
+              font-black
+              tracking-tight
+              bg-gradient-to-r
+              from-white
+              via-violet-200
+              to-cyan-200
+              bg-clip-text
+              text-transparent
+            "
+          >
+            Tasks
+          </h1>
+
+          <p className="text-zinc-400 mt-3 text-lg">
+            Manage your daily productivity workflow.
+          </p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-600 text-white px-6 py-2.5 rounded-full font-medium flex items-center gap-2 shadow-lg shadow-indigo-500/25 hover:bg-indigo-500 transition-colors"
+
+        {/* ADD BUTTON */}
+        <button
+          className="
+            flex items-center gap-3
+            rounded-2xl
+            bg-gradient-to-r
+            from-violet-500
+            to-blue-500
+            px-5 py-3
+            text-white
+            font-semibold
+            shadow-[0_0_35px_rgba(99,102,241,0.35)]
+            transition-all
+            hover:scale-105
+          "
         >
-          <Plus className="w-5 h-5" /> Add Task
+          <Plus size={18} />
+
+          Add Task
         </button>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {filteredTasks.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 bg-slate-800/20 rounded-3xl border border-slate-700/50">
-            No tasks found. Enjoy your free time!
-          </div>
-        ) : (
-          filteredTasks.map((task) => (
-            <motion.div 
-              layout
-              key={task.id} 
-              className={`bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 p-6 rounded-2xl shadow-lg flex items-center justify-between group transition-colors ${task.completed ? 'opacity-50 grayscale' : 'hover:bg-slate-800/60'}`}
+      {/* TOP STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          {
+            label: "Tasks Completed",
+            value: "18",
+            icon: CheckCircle2,
+          },
+          {
+            label: "Pending Tasks",
+            value: "7",
+            icon: Clock3,
+          },
+          {
+            label: "Focus Streak",
+            value: "12 Days",
+            icon: Flame,
+          },
+        ].map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <div
+              key={item.label}
+              className="
+                rounded-3xl
+                border border-white/10
+                bg-white/[0.04]
+                p-6
+                backdrop-blur-2xl
+                relative
+                overflow-hidden
+              "
             >
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => toggleTask(task.id)}
-                  className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${task.completed ? 'bg-indigo-500 border-indigo-500' : 'border-2 border-slate-600 hover:border-indigo-500 group-hover:bg-indigo-500/10'}`}
-                >
-                  {task.completed && <CheckSquare className="w-4 h-4 text-white" />}
-                </button>
+              <div
+                className="
+                  absolute
+                  top-0
+                  right-0
+                  h-28
+                  w-28
+                  rounded-full
+                  bg-violet-500/10
+                  blur-3xl
+                "
+              />
+
+              <div className="relative z-10 flex items-center justify-between">
                 <div>
-                  <h3 className={`font-bold mb-1 transition-all ${task.completed ? 'text-slate-500 line-through' : 'text-white'}`}>
-                    {task.title}
-                  </h3>
-                  <p className="text-sm text-slate-400">Due: {task.due}</p>
+                  <p className="text-zinc-400 text-sm">
+                    {item.label}
+                  </p>
+
+                  <h2 className="text-4xl font-black mt-3 text-white">
+                    {item.value}
+                  </h2>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className={`px-3 py-1 rounded-full text-xs font-bold text-white ${task.color}`}>
-                  {task.priority}
-                </div>
-                <button 
-                  onClick={() => deleteTask(task.id)}
-                  className="p-2 text-slate-500 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-slate-700"
+
+                <div
+                  className="
+                    h-14
+                    w-14
+                    rounded-2xl
+                    bg-gradient-to-br
+                    from-violet-500/20
+                    to-blue-500/20
+                    border border-white/10
+                    flex items-center justify-center
+                  "
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                  <Icon
+                    size={24}
+                    className="text-violet-300"
+                  />
+                </div>
               </div>
-            </motion.div>
-          ))
-        )}
+            </div>
+          );
+        })}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Task">
-        <form onSubmit={handleAdd} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-slate-300">Task Title</label>
-            <input 
-              type="text" 
-              required
-              value={newTask.title}
-              onChange={e => setNewTask({...newTask, title: e.target.value})}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition-colors" 
-              placeholder="E.g., Complete Math Assignment"
+      {/* TASKS GRID */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {tasks.map((task, index) => (
+          <motion.div
+            key={task.title}
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              delay: index * 0.1,
+            }}
+            whileHover={{
+              y: -6,
+            }}
+            className="
+              group
+              relative
+              overflow-hidden
+              rounded-[32px]
+              border border-white/10
+              bg-white/[0.04]
+              p-7
+              backdrop-blur-2xl
+              transition-all
+              duration-500
+              hover:border-violet-500/20
+              hover:bg-white/[0.05]
+            "
+          >
+            {/* glow */}
+            <div
+              className={`
+                absolute
+                top-0
+                right-0
+                h-40
+                w-40
+                rounded-full
+                blur-3xl
+                opacity-20
+                bg-gradient-to-br
+                ${task.color}
+              `}
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-slate-300">Due Date/Time</label>
-            <input 
-              type="text" 
-              value={newTask.due}
-              onChange={e => setNewTask({...newTask, due: e.target.value})}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition-colors" 
-              placeholder="E.g., Tomorrow, 5:00 PM"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-slate-300">Priority</label>
-              <select 
-                value={newTask.priority}
-                onChange={e => {
-                  const val = e.target.value;
-                  const color = val === 'High' ? 'bg-rose-500' : val === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500';
-                  setNewTask({...newTask, priority: val, color});
-                }}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
+
+            <div className="relative z-10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-white">
+                    {task.title}
+                  </h3>
+
+                  <div className="flex items-center gap-3 mt-4">
+                    <div
+                      className={`
+                        px-3 py-1
+                        rounded-full
+                        text-xs
+                        font-semibold
+                        bg-gradient-to-r
+                        ${task.color}
+                      `}
+                    >
+                      {task.priority}
+                    </div>
+
+                    <div
+                      className="
+                        text-sm
+                        text-zinc-400
+                      "
+                    >
+                      {task.time}
+                    </div>
+                  </div>
+                </div>
+
+                {/* STATUS */}
+                <div
+                  className={`
+                    h-14
+                    w-14
+                    rounded-2xl
+                    flex
+                    items-center
+                    justify-center
+                    border border-white/10
+                    ${
+                      task.completed
+                        ? "bg-emerald-500/20"
+                        : "bg-white/[0.05]"
+                    }
+                  `}
+                >
+                  <CheckCircle2
+                    size={24}
+                    className={
+                      task.completed
+                        ? "text-emerald-400"
+                        : "text-zinc-500"
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* PROGRESS */}
+              <div className="mt-8">
+                <div className="flex justify-between mb-3">
+                  <p className="text-sm text-zinc-400">
+                    Progress
+                  </p>
+
+                  <p className="text-sm text-white font-semibold">
+                    {task.completed ? "100%" : "65%"}
+                  </p>
+                </div>
+
+                <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className={`
+                      h-full
+                      rounded-full
+                      bg-gradient-to-r
+                      ${task.color}
+                    `}
+                    style={{
+                      width: task.completed
+                        ? "100%"
+                        : "65%",
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-          <button type="submit" className="mt-4 bg-indigo-600 text-white py-2.5 rounded-xl font-medium hover:bg-indigo-500 transition-colors">
-            Create Task
-          </button>
-        </form>
-      </Modal>
+          </motion.div>
+        ))}
+      </div>
     </motion.div>
   );
 }

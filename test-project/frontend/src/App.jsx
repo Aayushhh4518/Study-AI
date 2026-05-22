@@ -10,6 +10,7 @@ import PageContainer from "./components/layout/PageContainer";
 
 import Dashboard from "./pages/Dashboard";
 import Subjects from "./pages/Subjects";
+import Tasks from "./pages/Tasks";
 
 // Temporary placeholders for routing safety
 function PlaceholderPage({ title }) {
@@ -36,7 +37,7 @@ function App() {
           <Route path="subjects" element={<Subjects />} />
 
           {/* PLACEHOLDER ROUTES */}
-          <Route path="tasks" element={<PlaceholderPage title="Tasks" />} />
+          <Route path="tasks" element={<Tasks />} />
 
           <Route
             path="focus"

@@ -271,48 +271,153 @@ export default function Dashboard() {
           className="
             xl:col-span-2
             p-7
-            min-h-[450px]
+            min-h-[520px]
+            relative
+            overflow-hidden
           "
         >
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-3xl font-bold text-white">
-                Productivity Overview
-              </h3>
-
-              <p className="text-zinc-400 mt-2">
-                Weekly study performance analytics
-              </p>
-            </div>
-
-            <div
-              className="
-                px-5 py-2.5
-                rounded-2xl
-                bg-violet-500/10
-                border border-violet-500/20
-                text-sm text-violet-300
-                backdrop-blur-xl
-              "
-            >
-              Live Analytics
-            </div>
-          </div>
-
-          {/* CHART */}
+          {/* glow */}
           <div
             className="
-              h-[340px]
-              rounded-[28px]
-              border border-white/10
-              bg-gradient-to-br
-              from-white/[0.04]
-              to-white/[0.01]
-              p-5
-              backdrop-blur-2xl
+              absolute
+              top-0
+              right-0
+              h-72
+              w-72
+              rounded-full
+              bg-violet-500/10
+              blur-3xl
             "
-          >
-            <ProductivityChart />
+          />
+
+          <div className="relative z-10">
+            {/* TOP */}
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-3xl font-bold text-white">
+                  Productivity Overview
+                </h3>
+
+                <p className="text-zinc-400 mt-2">
+                  Weekly study performance analytics
+                </p>
+              </div>
+
+              <div
+                className="
+                  px-5 py-2.5
+                  rounded-2xl
+                  bg-violet-500/10
+                  border border-violet-500/20
+                  text-sm text-violet-300
+                  backdrop-blur-xl
+                "
+              >
+                Live Analytics
+              </div>
+            </div>
+
+            {/* MINI STATS */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                {
+                  label: "Focus Score",
+                  value: "92%",
+                },
+                {
+                  label: "Weekly Growth",
+                  value: "+18%",
+                },
+                {
+                  label: "Consistency",
+                  value: "7 Days",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="
+                    rounded-2xl
+                    border border-white/10
+                    bg-white/[0.03]
+                    p-4
+                    backdrop-blur-xl
+                  "
+                >
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                    {item.label}
+                  </p>
+
+                  <h4 className="text-2xl font-bold text-white mt-3">
+                    {item.value}
+                  </h4>
+                </div>
+              ))}
+            </div>
+
+            {/* CHART */}
+            <div
+              className="
+                h-[320px]
+                rounded-[28px]
+                border border-white/10
+                bg-gradient-to-br
+                from-white/[0.04]
+                to-white/[0.01]
+                p-5
+                backdrop-blur-2xl
+                relative
+                overflow-hidden
+              "
+            >
+              {/* chart glow */}
+              <div
+                className="
+                  absolute
+                  bottom-0
+                  left-1/2
+                  -translate-x-1/2
+                  h-40
+                  w-96
+                  bg-violet-500/10
+                  blur-3xl
+                "
+              />
+
+              <ProductivityChart />
+            </div>
+
+            {/* BOTTOM INSIGHTS */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <div
+                className="
+                  rounded-2xl
+                  border border-white/10
+                  bg-white/[0.03]
+                  p-5
+                "
+              >
+                <p className="text-zinc-500 text-sm">Peak Productivity</p>
+
+                <h4 className="text-white text-xl font-bold mt-2">
+                  Thursday Evening
+                </h4>
+              </div>
+
+              <div
+                className="
+                  rounded-2xl
+                  border border-white/10
+                  bg-white/[0.03]
+                  p-5
+                "
+              >
+                <p className="text-zinc-500 text-sm">AI Suggestion</p>
+
+                <h4 className="text-white text-xl font-bold mt-2">
+                  Schedule more focus sessions
+                </h4>
+              </div>
+            </div>
           </div>
         </PremiumCard>
 
