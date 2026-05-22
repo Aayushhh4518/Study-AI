@@ -6,7 +6,9 @@ import {
 } from "react-router-dom";
 
 import DashboardShell from "./components/layout/dashboard-shell";
-import PageContainer from "./components/layout/PageContainer";
+import GlobalSearch from "./components/search/global-search";
+
+import "./components/layout/PageContainer";
 
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
@@ -16,20 +18,10 @@ import Settings from "./pages/Settings";
 import Subjects from "./pages/Subjects";
 import Tasks from "./pages/Tasks";
 
-// Temporary placeholders for routing safety
-function PlaceholderPage({ title }) {
-  return (
-    <PageContainer title={title}>
-      <div className="text-gray-400">
-        Content for {title} is currently under construction.
-      </div>
-    </PageContainer>
-  );
-}
-
 function App() {
   return (
     <Router>
+      <GlobalSearch />
       <Routes>
         <Route path="/" element={<DashboardShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -43,25 +35,13 @@ function App() {
           {/* PLACEHOLDER ROUTES */}
           <Route path="tasks" element={<Tasks />} />
 
-          <Route
-            path="focus"
-            element={<FocusTimer />}
-          />
+          <Route path="focus" element={<FocusTimer />} />
 
-          <Route
-            path="analytics"
-            element={<Analytics />}
-          />
+          <Route path="analytics" element={<Analytics />} />
 
-          <Route
-            path="schedule"
-            element={<Schedule />}
-          />
+          <Route path="schedule" element={<Schedule />} />
 
-          <Route
-            path="settings"
-            element={<Settings />}
-          />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </Router>
