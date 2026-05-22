@@ -1,66 +1,256 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, User, Bell, Shield, Paintbrush } from 'lucide-react';
+import { motion } from "framer-motion";
+
+import {
+  Bell,
+  BrainCircuit,
+  MoonStar,
+  Shield,
+  Sparkles,
+  User,
+} from "lucide-react";
+
+import PremiumCard from "../components/ui/premium-card";
+
+const settingsCards = [
+  {
+    title: "Profile Settings",
+    desc: "Manage your account information and preferences.",
+    icon: User,
+    color: "from-violet-500 to-indigo-500",
+  },
+  {
+    title: "AI Preferences",
+    desc: "Customize AI productivity recommendations.",
+    icon: BrainCircuit,
+    color: "from-cyan-500 to-blue-500",
+  },
+  {
+    title: "Notifications",
+    desc: "Control reminders and smart alerts.",
+    icon: Bell,
+    color: "from-pink-500 to-rose-500",
+  },
+  {
+    title: "Appearance",
+    desc: "Manage themes and dashboard visuals.",
+    icon: MoonStar,
+    color: "from-emerald-500 to-green-500",
+  },
+];
 
 export default function Settings() {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto flex flex-col gap-8 pb-12"
+      transition={{ duration: 0.4 }}
+      className="space-y-8"
     >
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-slate-400">Manage your account preferences and application settings.</p>
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1
+            className="
+              text-5xl
+              font-bold
+              tracking-tight
+              bg-gradient-to-r
+              from-white
+              via-violet-200
+              to-blue-200
+              bg-clip-text
+              text-transparent
+            "
+          >
+            Settings
+          </h1>
+
+          <p className="text-zinc-400 mt-3 text-lg">
+            Customize your AI productivity experience.
+          </p>
+        </div>
+
+        {/* BADGE */}
+        <div
+          className="
+            flex items-center gap-3
+            rounded-2xl
+            border border-white/10
+            bg-white/[0.04]
+            px-5 py-3
+            backdrop-blur-xl
+          "
+        >
+          <div
+            className="
+              h-10 w-10
+              rounded-xl
+              bg-gradient-to-br
+              from-violet-500
+              to-blue-500
+              flex items-center justify-center
+              shadow-[0_0_35px_rgba(99,102,241,0.35)]
+            "
+          >
+            <Sparkles size={18} />
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-white">
+              Smart Settings
+            </p>
+
+            <p className="text-xs text-zinc-400">
+              AI personalization enabled
+            </p>
+          </div>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div className="md:col-span-1 flex flex-col gap-2">
+
+      {/* SETTINGS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {settingsCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <PremiumCard
+              key={card.title}
+              className="
+                p-6
+                relative
+                overflow-hidden
+              "
+            >
+              {/* GLOW */}
+              <div
+                className={`
+                  absolute
+                  top-0
+                  right-0
+                  h-32
+                  w-32
+                  rounded-full
+                  blur-3xl
+                  opacity-20
+                  bg-gradient-to-br
+                  ${card.color}
+                `}
+              />
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      {card.title}
+                    </h2>
+
+                    <p className="text-zinc-400 mt-3 max-w-sm">
+                      {card.desc}
+                    </p>
+                  </div>
+
+                  <div
+                    className={`
+                      h-14
+                      w-14
+                      rounded-2xl
+                      bg-gradient-to-br
+                      ${card.color}
+                      flex items-center justify-center
+                      shadow-[0_0_30px_rgba(99,102,241,0.25)]
+                    `}
+                  >
+                    <Icon size={24} />
+                  </div>
+                </div>
+
+                <button
+                  className="
+                    mt-8
+                    rounded-2xl
+                    border border-white/10
+                    bg-white/[0.04]
+                    px-5 py-3
+                    text-sm
+                    font-medium
+                    text-white
+                    transition-all
+                    hover:bg-white/[0.08]
+                    hover:border-white/20
+                  "
+                >
+                  Configure
+                </button>
+              </div>
+            </PremiumCard>
+          );
+        })}
+      </div>
+
+      {/* SECURITY PANEL */}
+      <PremiumCard className="p-6">
+        <div className="flex items-center gap-4">
+          <div
+            className="
+              h-16
+              w-16
+              rounded-3xl
+              bg-gradient-to-br
+              from-violet-500
+              to-blue-500
+              flex items-center justify-center
+              shadow-[0_0_35px_rgba(99,102,241,0.35)]
+            "
+          >
+            <Shield size={28} />
+          </div>
+
+          <div>
+            <h3 className="text-2xl font-semibold text-white">
+              Security & Privacy
+            </h3>
+
+            <p className="text-zinc-400 mt-1">
+              Your AI productivity data is securely encrypted.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
           {[
-            { label: 'Profile', icon: User, active: true },
-            { label: 'Notifications', icon: Bell },
-            { label: 'Appearance', icon: Paintbrush },
-            { label: 'Security', icon: Shield },
-          ].map((item, i) => (
-            <button key={i} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
+            {
+              label: "Two-factor Authentication",
+              value: "Enabled",
+            },
+            {
+              label: "Cloud Sync",
+              value: "Active",
+            },
+            {
+              label: "AI Data Protection",
+              value: "Secured",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="
+                rounded-2xl
+                border border-white/10
+                bg-white/[0.03]
+                p-5
+              "
+            >
+              <p className="text-zinc-400 text-sm">
+                {item.label}
+              </p>
+
+              <h4 className="text-xl font-semibold mt-2">
+                {item.value}
+              </h4>
+            </div>
           ))}
         </div>
-        
-        <div className="md:col-span-3 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-xl flex flex-col gap-6">
-          <h2 className="text-xl font-bold text-white border-b border-slate-700 pb-4">Profile Information</h2>
-          
-          <div className="flex items-center gap-6">
-            <img 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
-              alt="User profile" 
-              className="w-24 h-24 rounded-full bg-slate-800 border-4 border-slate-700"
-            />
-            <button className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm">
-              Change Avatar
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Display Name</label>
-              <input type="text" defaultValue="Alex Chen" className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition-colors" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Email Address</label>
-              <input type="email" defaultValue="alex@studyai.app" className="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none cursor-not-allowed" disabled />
-            </div>
-          </div>
-          
-          <div className="pt-4 border-t border-slate-700 flex justify-end">
-            <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/25 text-sm">
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
+      </PremiumCard>
     </motion.div>
   );
 }

@@ -11,9 +11,10 @@ import PageContainer from "./components/layout/PageContainer";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import FocusTimer from "./pages/FocusTimer";
+import Schedule from "./pages/Schedule";
+import Settings from "./pages/Settings";
 import Subjects from "./pages/Subjects";
 import Tasks from "./pages/Tasks";
-import Schedule from "./pages/Schedule";
 
 // Temporary placeholders for routing safety
 function PlaceholderPage({ title }) {
@@ -59,7 +60,7 @@ function App() {
 
           <Route
             path="settings"
-            element={<PlaceholderPage title="Settings" />}
+            element={<Settings />}
           />
         </Route>
       </Routes>
