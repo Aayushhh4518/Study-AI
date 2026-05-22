@@ -8,6 +8,7 @@ import {
 import DashboardShell from "./components/layout/dashboard-shell";
 import PageContainer from "./components/layout/PageContainer";
 
+import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import FocusTimer from "./pages/FocusTimer";
 import Subjects from "./pages/Subjects";
@@ -47,7 +48,7 @@ function App() {
 
           <Route
             path="analytics"
-            element={<PlaceholderPage title="Analytics" />}
+            element={<Analytics />}
           />
 
           <Route
