@@ -9,6 +9,8 @@ import {
 
 import PremiumCard from "../components/ui/premium-card";
 
+import AnalyticsChart from "../components/analytics/analytics-chart";
+
 export default function Analytics() {
   return (
     <motion.div
@@ -18,9 +20,21 @@ export default function Analytics() {
       className="space-y-8"
     >
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-bold tracking-tight">
+          <h1
+            className="
+              text-5xl
+              font-bold
+              tracking-tight
+              bg-gradient-to-r
+              from-white
+              via-violet-200
+              to-blue-200
+              bg-clip-text
+              text-transparent
+            "
+          >
             Analytics
           </h1>
 
@@ -29,6 +43,7 @@ export default function Analytics() {
           </p>
         </div>
 
+        {/* AI BADGE */}
         <div
           className="
             flex items-center gap-3
@@ -47,6 +62,7 @@ export default function Analytics() {
               from-violet-500
               to-blue-500
               flex items-center justify-center
+              shadow-[0_0_35px_rgba(99,102,241,0.35)]
             "
           >
             <Brain size={18} />
@@ -64,7 +80,7 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* TOP STATS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {[
           {
@@ -99,26 +115,13 @@ export default function Analytics() {
               key={item.title}
               className="p-6 relative overflow-hidden"
             >
-              <div
-                className="
-                  absolute
-                  top-0
-                  right-0
-                  h-24
-                  w-24
-                  rounded-full
-                  bg-violet-500/10
-                  blur-3xl
-                "
-              />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-zinc-500 uppercase tracking-[0.2em]">
                     {item.title}
                   </p>
 
-                  <h2 className="text-4xl font-bold mt-3">
+                  <h2 className="text-4xl font-bold mt-3 text-white">
                     {item.value}
                   </h2>
 
@@ -149,9 +152,9 @@ export default function Analytics() {
         })}
       </div>
 
-      {/* MAIN ANALYTICS GRID */}
+      {/* MAIN GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* LARGE CHART CARD */}
+        {/* CHART */}
         <PremiumCard
           className="
             xl:col-span-2
@@ -161,7 +164,7 @@ export default function Analytics() {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-2xl font-semibold">
+              <h3 className="text-2xl font-semibold text-white">
                 Productivity Trends
               </h3>
 
@@ -189,15 +192,18 @@ export default function Analytics() {
               rounded-3xl
               border border-white/10
               bg-white/[0.03]
+              p-4
             "
-          />
+          >
+            <AnalyticsChart />
+          </div>
         </PremiumCard>
 
         {/* AI INSIGHTS */}
         <PremiumCard className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-2xl font-semibold">
+              <h3 className="text-2xl font-semibold text-white">
                 AI Insights
               </h3>
 
@@ -213,6 +219,7 @@ export default function Analytics() {
                 bg-gradient-to-br
                 from-cyan-500
                 to-blue-500
+                shadow-[0_0_35px_rgba(59,130,246,0.35)]
               "
             />
           </div>
@@ -230,6 +237,8 @@ export default function Analytics() {
                   bg-white/[0.04]
                   border border-white/10
                   p-4
+                  transition-all
+                  hover:bg-white/[0.06]
                 "
               >
                 <p className="text-zinc-300 text-sm">
@@ -239,6 +248,49 @@ export default function Analytics() {
             ))}
           </div>
         </PremiumCard>
+      </div>
+
+      {/* BOTTOM ANALYTICS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {[
+          {
+            label: "Peak Focus Day",
+            value: "Thursday",
+            sub: "Most productive day",
+          },
+          {
+            label: "Avg Session",
+            value: "2.4h",
+            sub: "Daily deep work",
+          },
+          {
+            label: "Deep Work",
+            value: "38h",
+            sub: "This week",
+          },
+          {
+            label: "AI Suggestion",
+            value: "Night Study",
+            sub: "Best focus period",
+          },
+        ].map((item) => (
+          <PremiumCard
+            key={item.label}
+            className="p-5"
+          >
+            <p className="text-sm text-zinc-500 uppercase tracking-[0.18em]">
+              {item.label}
+            </p>
+
+            <h3 className="text-2xl font-bold mt-3 text-white">
+              {item.value}
+            </h3>
+
+            <p className="text-zinc-400 text-sm mt-2">
+              {item.sub}
+            </p>
+          </PremiumCard>
+        ))}
       </div>
     </motion.div>
   );

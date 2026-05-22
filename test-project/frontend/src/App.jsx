@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import FocusTimer from "./pages/FocusTimer";
 import Subjects from "./pages/Subjects";
 import Tasks from "./pages/Tasks";
+import Schedule from "./pages/Schedule";
 
 // Temporary placeholders for routing safety
 function PlaceholderPage({ title }) {
@@ -53,7 +54,7 @@ function App() {
 
           <Route
             path="schedule"
-            element={<PlaceholderPage title="Schedule" />}
+            element={<Schedule />}
           />
 
           <Route
