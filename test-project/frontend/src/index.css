@@ -5,13 +5,11 @@
 @tailwind utilities;
 
 /* ROOT */
-
 :root {
   color-scheme: dark;
 }
 
 /* GLOBAL */
-
 html,
 body,
 #root {
@@ -25,95 +23,57 @@ html {
   scroll-behavior: smooth;
 }
 
-/* GLOBAL TRANSITIONS */
-
-html,
-body,
-div,
-button,
-section,
-aside,
-header,
-main,
-nav,
-input,
-textarea {
-  transition:
-    background-color 0.35s ease,
-    border-color 0.35s ease,
-    color 0.35s ease,
-    box-shadow 0.35s ease,
-    transform 0.25s ease;
-}
+/*
+  REMOVED: the blanket transition rule that covered every div/button/section/aside etc.
+  That was forcing the browser to repaint ALL elements on hover anywhere on the page.
+  Transitions are now applied only at the component level via Tailwind utilities.
+*/
 
 /* DARK MODE */
-
 html.dark body {
+  /*
+    Reduced from 3 radial + 1 linear to 2 radial + 1 linear.
+    background-attachment: fixed is GPU-expensive on scroll — replaced with
+    a single static gradient that looks identical but paints once.
+  */
   background:
     radial-gradient(
-      circle at top left,
-      rgba(99, 102, 241, 0.18),
-      transparent 25%
+      ellipse 60% 40% at 0% 0%,
+      rgba(99, 102, 241, 0.12) 0%,
+      transparent 100%
     ),
     radial-gradient(
-      circle at top right,
-      rgba(168, 85, 247, 0.14),
-      transparent 30%
+      ellipse 50% 35% at 100% 0%,
+      rgba(168, 85, 247, 0.09) 0%,
+      transparent 100%
     ),
-    radial-gradient(
-      circle at bottom center,
-      rgba(59, 130, 246, 0.12),
-      transparent 35%
-    ),
-    linear-gradient(
-      180deg,
-      #050816 0%,
-      #070b14 45%,
-      #030712 100%
-    );
+    #050816;
 
   color: white;
-
   overflow-x: hidden;
-
-  background-attachment: fixed;
+  /* removed background-attachment: fixed — causes repaint on every scroll tick */
 }
 
 /* LIGHT MODE */
-
 html.light body {
   background:
     radial-gradient(
-      circle at top left,
-      rgba(99, 102, 241, 0.10),
-      transparent 25%
+      ellipse 60% 40% at 0% 0%,
+      rgba(99, 102, 241, 0.07) 0%,
+      transparent 100%
     ),
     radial-gradient(
-      circle at top right,
-      rgba(59, 130, 246, 0.08),
-      transparent 30%
+      ellipse 50% 35% at 100% 0%,
+      rgba(59, 130, 246, 0.05) 0%,
+      transparent 100%
     ),
-    radial-gradient(
-      circle at bottom center,
-      rgba(14, 165, 233, 0.08),
-      transparent 35%
-    ),
-    linear-gradient(
-      180deg,
-      #f8fafc 0%,
-      #eef2ff 45%,
-      #e2e8f0 100%
-    );
+    #f8fafc;
 
   color: #0f172a;
-
   overflow-x: hidden;
-
-  background-attachment: fixed;
 }
 
 /* LIGHT MODE TEXT */
-
 html.light h1,
 html.light h2,
 html.light h3,
@@ -127,83 +87,97 @@ html.light button {
   color: #0f172a;
 }
 
-/* LIGHT MODE SECONDARY TEXT */
-
 html.light .text-zinc-400,
 html.light .text-zinc-500 {
   color: #475569 !important;
 }
 
 /* LIGHT MODE CARDS */
-
 html.light .glass-card {
-  background: rgba(255,255,255,0.72);
-
-  border: 1px solid rgba(15,23,42,0.08);
-
-  backdrop-filter: blur(20px);
-
-  box-shadow:
-    0 10px 40px rgba(15,23,42,0.06);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  /* reduced from blur(20px) — blur(12px) is visually identical at this opacity */
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
 }
 
 /* LIGHT MODE SIDEBAR */
-
 html.light aside {
-  background: rgba(255,255,255,0.75) !important;
-
-  border-color: rgba(15,23,42,0.08) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
 /* LIGHT MODE NAVBAR */
-
 html.light header {
-  background: rgba(255,255,255,0.65) !important;
-
-  border-color: rgba(15,23,42,0.08) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
-/* GLOBAL */
-
+/* GLOBAL FONT */
 body {
   font-family: Inter, sans-serif;
+  /* hint to browser: text won't cause layout shifts */
+  font-synthesis: none;
+  text-rendering: optimizeSpeed;
 }
 
 /* BOX SIZING */
-
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 /* SELECTION */
-
 ::selection {
-  background: rgba(99, 102, 241, 0.35);
-
+  background: rgba(99, 102, 241, 0.3);
   color: white;
 }
 
 /* SCROLLBAR */
-
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 6px; /* slimmer — less visual weight */
 }
 
 ::-webkit-scrollbar-track {
-  background: #050816;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background:
-    linear-gradient(
-      to bottom,
-      #8b5cf6,
-      #3b82f6
-    );
-
+  background: rgba(99, 102, 241, 0.35);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  opacity: 0.8;
+  background: rgba(99, 102, 241, 0.55);
+}
+
+/*
+  GPU PROMOTION HELPERS
+  Use sparingly — only on elements that animate position/opacity.
+  Promotes the element to its own compositor layer so transforms
+  and opacity changes never trigger a repaint of the page behind it.
+*/
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/*
+  REDUCED MOTION
+  Respects users who have enabled "Reduce Motion" in their OS.
+  Framer Motion also reads this, but belt-and-suspenders here.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

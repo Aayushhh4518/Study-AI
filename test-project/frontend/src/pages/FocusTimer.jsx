@@ -1,73 +1,82 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
 import { motion } from "framer-motion";
-
 import {
+  Brain,
+  Coffee,
   Pause,
   Play,
   RotateCcw,
+  Sparkles,
   TimerReset,
 } from "lucide-react";
-
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import PremiumCard from "../components/ui/premium-card";
+import { useData } from "../store/DataContext";
 
-const TOTAL_TIME = 25 * 60;
+const WORK_TIME = 25 * 60;
+const BREAK_TIME = 5 * 60;
 
 export default function FocusTimer() {
-  const [secondsLeft, setSecondsLeft] =
-    useState(TOTAL_TIME);
+  const { data, stats, recordFocusSession } = useData();
 
-  const [isRunning, setIsRunning] =
-    useState(false);
+  const [focusState, setFocusState] = useState(() => {
+    const saved = localStorage.getItem("studyai-focus-state");
+    return saved ? JSON.parse(saved) : { mode: "work", secondsLeft: WORK_TIME };
+  });
 
-  const [sessionsCompleted, setSessionsCompleted] =
-    useState(8);
+  const [isRunning, setIsRunning] = useState(false);
+  const { mode, secondsLeft } = focusState;
+  const TOTAL_TIME = mode === "work" ? WORK_TIME : BREAK_TIME;
 
-  /* TIMER EFFECT */
+  /* SAVE */
+  useEffect(() => {
+    localStorage.setItem("studyai-focus-state", JSON.stringify(focusState));
+  }, [focusState]);
 
+  /* TIMER */
   useEffect(() => {
     let interval;
 
-    if (isRunning) {
+    if (isRunning && secondsLeft > 0) {
       interval = setInterval(() => {
-        setSecondsLeft((prev) => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            setSessionsCompleted((count) => count + 1);
-            return 0;
-          }
-
-          return prev - 1;
-        });
+        setFocusState((prev) => ({
+          ...prev,
+          secondsLeft: prev.secondsLeft - 1,
+        }));
       }, 1000);
+    } else if (isRunning && secondsLeft === 0) {
+      setIsRunning(false);
+
+      if (mode === "work") {
+        recordFocusSession(25);
+        toast.success("Focus session completed! Time for a break.", {
+          icon: "🎉",
+        });
+        setFocusState({ mode: "break", secondsLeft: BREAK_TIME });
+      } else {
+        toast.success("Break is over! Ready to focus?", { icon: "🧠" });
+        setFocusState({ mode: "work", secondsLeft: WORK_TIME });
+      }
     }
 
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, secondsLeft, mode, recordFocusSession]);
 
-  /* FORMAT TIME */
-
-  const minutes = String(
-    Math.floor(secondsLeft / 60),
-  ).padStart(2, "0");
-
-  const seconds = String(
-    secondsLeft % 60,
-  ).padStart(2, "0");
+  /* FORMAT */
+  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
 
   /* PROGRESS */
-
   const progress = useMemo(() => {
-    return (
-      ((TOTAL_TIME - secondsLeft) /
-        TOTAL_TIME) *
-      100
-    );
-  }, [secondsLeft]);
+    return ((TOTAL_TIME - secondsLeft) / TOTAL_TIME) * 100;
+  }, [secondsLeft, TOTAL_TIME]);
+
+  /* CONTROLS */
+  const handleReset = () => {
+    setFocusState({ mode: "work", secondsLeft: WORK_TIME });
+    setIsRunning(false);
+    toast.info("Timer reset");
+  };
 
   return (
     <motion.div
@@ -77,58 +86,84 @@ export default function FocusTimer() {
       className="space-y-8"
     >
       {/* HEADER */}
-      <div>
-        <h1
-          className="
-            text-5xl
-            font-black
-            tracking-tight
-            bg-gradient-to-r
-            from-white
-            via-violet-200
-            to-cyan-200
-            bg-clip-text
-            text-transparent
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1
+            className="
+            text-3xl font-bold tracking-tight leading-none
+            bg-gradient-to-r from-white via-zinc-100 to-zinc-400
+            bg-clip-text text-transparent
           "
-        >
-          Focus Mode
-        </h1>
+          >
+            Focus Mode
+          </h1>
+          <p className="text-zinc-500 mt-2 text-[13px] font-medium">
+            Immersive deep work sessions powered by AI
+          </p>
+        </div>
 
-        <p className="text-zinc-400 mt-3 text-lg">
-          Deep work sessions powered by AI productivity.
-        </p>
+        {/* AI status badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/[0.08] text-violet-300 text-[12px] font-semibold tracking-wide shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] self-start sm:self-auto">
+          {mode === "work" ? (
+            <>
+              <Brain size={14} className="text-violet-400" /> AI Focus Active
+            </>
+          ) : (
+            <>
+              <Coffee size={14} className="text-emerald-400" /> Rest & Recover
+            </>
+          )}
+        </div>
       </div>
 
       {/* MAIN GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* TIMER */}
-        <PremiumCard
-          className="
-            xl:col-span-2
-            p-10
-            min-h-[580px]
-            flex
-            items-center
-            justify-center
-          "
-        >
-          <div className="flex flex-col items-center">
-            {/* TITLE */}
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-white">
-                Pomodoro Session
-              </h2>
+        <PremiumCard className="xl:col-span-2 p-10 min-h-[580px] flex items-center justify-center relative overflow-hidden group">
+          <div
+            className={`pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full blur-[100px] transition-all duration-1000 ${
+              mode === "work" ? "bg-violet-500/[0.04]" : "bg-emerald-500/[0.04]"
+            }`}
+            style={{ opacity: isRunning ? 1 : 0.4 }}
+          />
 
-              <p className="text-zinc-400 mt-3">
-                Stay focused and maximize productivity
+          <div className="flex flex-col items-center relative z-10">
+            {/* TITLE */}
+            <div className="text-center mb-14">
+              <h2 className="text-2xl font-bold text-zinc-100 tracking-tight">
+                {mode === "work"
+                  ? isRunning
+                    ? "Deep Work Session"
+                    : "Ready to Focus"
+                  : isRunning
+                    ? "Recovery Break"
+                    : "Take a Breather"}
+              </h2>
+              <p className="text-zinc-500 mt-2 text-[14px] font-medium flex items-center justify-center gap-2">
+                {isRunning && (
+                  <span className="relative flex h-2 w-2">
+                    <span
+                      className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${mode === "work" ? "bg-emerald-400" : "bg-teal-400"}`}
+                    ></span>
+                    <span
+                      className={`relative inline-flex rounded-full h-2 w-2 ${mode === "work" ? "bg-emerald-500" : "bg-teal-500"}`}
+                    ></span>
+                  </span>
+                )}
+                {mode === "work"
+                  ? isRunning
+                    ? "Minimize distractions and maintain flow"
+                    : "Start the timer when you're ready"
+                  : isRunning
+                    ? "Relax, stretch, and grab some water"
+                    : "Enjoy your well-earned break"}
               </p>
             </div>
 
-            {/* PROGRESS RING */}
+            {/* RING */}
             <div className="relative h-[320px] w-[320px]">
-              {/* BACKGROUND */}
               <svg
-                className="absolute inset-0"
+                className="absolute inset-0 drop-shadow-[0_0_20px_rgba(139,92,246,0.15)]"
                 width="320"
                 height="320"
               >
@@ -136,25 +171,25 @@ export default function FocusTimer() {
                   cx="160"
                   cy="160"
                   r="140"
-                  stroke="rgba(255,255,255,0.08)"
-                  strokeWidth="14"
+                  stroke="rgba(255,255,255,0.04)"
+                  strokeWidth="6"
                   fill="transparent"
                 />
 
-                {/* PROGRESS */}
                 <motion.circle
                   cx="160"
                   cy="160"
                   r="140"
                   stroke="url(#gradient)"
-                  strokeWidth="14"
+                  strokeWidth="6"
                   fill="transparent"
                   strokeLinecap="round"
                   strokeDasharray={879.6}
-                  strokeDashoffset={
-                    879.6 -
-                    (879.6 * progress) / 100
-                  }
+                  initial={{ strokeDashoffset: 879.6 }}
+                  animate={{
+                    strokeDashoffset: 879.6 - (879.6 * progress) / 100,
+                  }}
+                  transition={{ duration: 1, ease: "linear" }}
                   transform="rotate(-90 160 160)"
                 />
 
@@ -168,12 +203,12 @@ export default function FocusTimer() {
                   >
                     <stop
                       offset="0%"
-                      stopColor="#8b5cf6"
+                      stopColor={mode === "work" ? "#8b5cf6" : "#10b981"}
                     />
 
                     <stop
                       offset="100%"
-                      stopColor="#3b82f6"
+                      stopColor={mode === "work" ? "#3b82f6" : "#14b8a6"}
                     />
                   </linearGradient>
                 </defs>
@@ -202,7 +237,9 @@ export default function FocusTimer() {
                 </h1>
 
                 <p className="text-zinc-400 mt-4 text-lg">
-                  Focus Time Remaining
+                  {mode === "work"
+                    ? "Focus Time Remaining"
+                    : "Break Time Remaining"}
                 </p>
               </div>
             </div>
@@ -211,9 +248,7 @@ export default function FocusTimer() {
             <div className="flex items-center gap-5 mt-14">
               {/* PAUSE */}
               <button
-                onClick={() =>
-                  setIsRunning(false)
-                }
+                onClick={() => setIsRunning(false)}
                 className="
                   h-16
                   w-16
@@ -230,32 +265,24 @@ export default function FocusTimer() {
 
               {/* PLAY */}
               <button
-                onClick={() =>
-                  setIsRunning(true)
-                }
-                className="
+                onClick={() => setIsRunning(true)}
+                className={`
                   h-20
                   w-20
                   rounded-3xl
                   bg-gradient-to-br
-                  from-violet-500
-                  to-blue-500
+                  ${mode === "work" ? "from-violet-500 to-blue-500 shadow-[0_0_50px_rgba(99,102,241,0.45)]" : "from-emerald-500 to-teal-500 shadow-[0_0_50px_rgba(16,185,129,0.45)]"}
                   flex items-center justify-center
-                  shadow-[0_0_50px_rgba(99,102,241,0.45)]
                   transition-all
                   hover:scale-105
-                "
+                `}
               >
                 <Play size={30} />
               </button>
 
               {/* RESET */}
               <button
-                onClick={() => {
-                  setSecondsLeft(TOTAL_TIME);
-
-                  setIsRunning(false);
-                }}
+                onClick={handleReset}
                 className="
                   h-16
                   w-16
@@ -275,32 +302,26 @@ export default function FocusTimer() {
 
         {/* SIDE PANEL */}
         <div className="space-y-6">
-          {/* STATS */}
           <PremiumCard className="p-7">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-white">
-                Session Stats
-              </h3>
+              <h3 className="text-2xl font-bold text-white">Session Stats</h3>
 
-              <TimerReset
-                size={22}
-                className="text-violet-300"
-              />
+              <TimerReset size={22} className="text-violet-300" />
             </div>
 
             <div className="space-y-5 mt-8">
               {[
                 {
-                  label: "Today's Focus",
-                  value: "4.2h",
+                  label: "Total Focus Hours",
+                  value: `${stats.totalFocusHours}h`,
                 },
                 {
                   label: "Completed Sessions",
-                  value: sessionsCompleted,
+                  value: data.focusSessions.totalCompleted,
                 },
                 {
                   label: "Productivity Score",
-                  value: "92%",
+                  value: `${stats.productivityScore}%`,
                 },
               ].map((item) => (
                 <div
@@ -312,9 +333,7 @@ export default function FocusTimer() {
                     p-4
                   "
                 >
-                  <p className="text-zinc-400 text-sm">
-                    {item.label}
-                  </p>
+                  <p className="text-zinc-400 text-sm">{item.label}</p>
 
                   <h4 className="text-2xl font-bold text-white mt-2">
                     {item.value}
@@ -324,17 +343,15 @@ export default function FocusTimer() {
             </div>
           </PremiumCard>
 
-          {/* AI PANEL */}
           <PremiumCard className="p-7">
-            <h3 className="text-2xl font-bold text-white">
-              AI Focus Tip
+            <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Sparkles size={20} className="text-amber-400" /> AI Focus Tip
             </h3>
 
             <p className="text-zinc-300 mt-5 leading-relaxed">
-              Your productivity increases significantly
-              during uninterrupted 25-minute sessions.
-              AI recommends a 5-minute recovery break
-              after each cycle.
+              {stats.streak > 3
+                ? `You're on a ${stats.streak}-day streak! Consistency is key. AI suggests sticking to the 25-min interval to avoid burnout.`
+                : "Your productivity increases significantly during uninterrupted 25-minute sessions. Try to complete at least one cycle."}
             </p>
 
             <button

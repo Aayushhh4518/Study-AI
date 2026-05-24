@@ -1,6 +1,6 @@
-import { motion } from "framer-motion";
-
+import { animate, motion } from "framer-motion";
 import {
+  ArrowUpRight,
   BookOpen,
   BrainCircuit,
   CheckCircle2,
@@ -9,500 +9,445 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-
+import { useEffect, useRef } from "react";
 import ProductivityChart from "../components/dashboard/productivity-chart";
 import PremiumCard from "../components/ui/premium-card";
+
+/* ── Animated Counter Helper ──────────────────────────── */
+
+function AnimatedCounter({ value }) {
+  const nodeRef = useRef(null);
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) return;
+    const controls = animate(0, value, {
+      duration: 1.2,
+      ease: [0.2, 0.8, 0.2, 1], // Premium spring-like ease
+      onUpdate(v) {
+        node.textContent = Math.round(v);
+      },
+    });
+    return () => controls.stop();
+  }, [value]);
+
+  return <span ref={nodeRef} />;
+}
+
+/* ── Data ─────────────────────────────────────────────── */
 
 const stats = [
   {
     title: "Study Hours",
-    value: "128h",
+    value: 128,
+    suffix: "h",
+    delta: "+12%",
+    deltaLabel: "vs last week",
     icon: Clock3,
-    subtitle: "+12% from last week",
-    glow: "from-violet-500 to-indigo-500",
+    from: "from-violet-500",
+    to: "to-indigo-500",
+    glowColor: "rgba(139,92,246,0.18)",
   },
   {
-    title: "Tasks Completed",
-    value: "42",
+    title: "Tasks Done",
+    value: 42,
+    suffix: "",
+    delta: "8 left",
+    deltaLabel: "remaining",
     icon: CheckCircle2,
-    subtitle: "8 tasks pending",
-    glow: "from-cyan-500 to-blue-500",
+    from: "from-cyan-500",
+    to: "to-blue-500",
+    glowColor: "rgba(6,182,212,0.18)",
   },
   {
     title: "Subjects",
-    value: "8",
+    value: 8,
+    suffix: "",
+    delta: "2 active",
+    deltaLabel: "today",
     icon: BookOpen,
-    subtitle: "2 active today",
-    glow: "from-pink-500 to-rose-500",
+    from: "from-pink-500",
+    to: "to-rose-500",
+    glowColor: "rgba(236,72,153,0.18)",
   },
   {
     title: "AI Sessions",
-    value: "19",
+    value: 19,
+    suffix: "",
+    delta: "+4",
+    deltaLabel: "this week",
     icon: BrainCircuit,
-    subtitle: "AI productivity insights",
-    glow: "from-emerald-500 to-green-500",
+    from: "from-emerald-500",
+    to: "to-teal-500",
+    glowColor: "rgba(16,185,129,0.18)",
   },
+];
+
+const miniStats = [
+  { label: "Focus Score", value: "92%", sub: "Excellent" },
+  { label: "Weekly Growth", value: "+18%", sub: "Trending up" },
+  { label: "Streak", value: "7 days", sub: "Keep going" },
 ];
 
 const aiInsights = [
   {
     title: "Focus Increased",
-    desc: "Your productivity improved by 18% this week.",
+    desc: "Productivity improved 18% vs last week.",
     icon: TrendingUp,
+    accent: "violet",
+    tag: "+18%",
   },
   {
     title: "Best Study Time",
-    desc: "Peak performance detected between 7PM - 9PM.",
+    desc: "Peak performance: 7 PM – 9 PM nightly.",
     icon: Zap,
+    accent: "cyan",
+    tag: "7–9 PM",
   },
   {
     title: "AI Recommendation",
     desc: "Revise Data Structures tomorrow for retention.",
     icon: Sparkles,
+    accent: "indigo",
+    tag: "Due soon",
   },
 ];
+
+const accentMap = {
+  violet: {
+    icon: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+    tag: "bg-violet-500/[0.08] text-violet-300 border-violet-500/15",
+    bar: "bg-violet-500",
+  },
+  cyan: {
+    icon: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    tag: "bg-cyan-500/[0.08] text-cyan-300 border-cyan-500/15",
+    bar: "bg-cyan-500",
+  },
+  indigo: {
+    icon: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    tag: "bg-indigo-500/[0.08] text-indigo-300 border-indigo-500/15",
+    bar: "bg-indigo-400",
+  },
+};
+
+/* ── Animation variants — defined once outside component ── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0 },
+};
+
+const staggerGrid = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+};
+
+/* ── Component ─────────────────────────────────────────── */
 
 export default function Dashboard() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-8"
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="space-y-6 pb-4"
     >
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+          <h1
             className="
-              text-5xl
-              font-black
-              tracking-tight
-              bg-gradient-to-r
-              from-white
-              via-violet-200
-              to-cyan-200
-              bg-clip-text
-              text-transparent
-            "
+            text-3xl font-bold tracking-tight leading-none
+            bg-gradient-to-r from-white via-zinc-100 to-zinc-400
+            bg-clip-text text-transparent
+          "
           >
-            Dashboard
-          </motion.h1>
-
-          <p className="text-zinc-400 mt-3 text-lg">
-            Welcome back to your AI-powered productivity workspace.
+            Overview
+          </h1>
+          <p className="text-zinc-500 mt-2 text-[13px] font-medium">
+            Performance metrics and insights for today
           </p>
         </div>
 
-        {/* AI MODE BADGE */}
-        <motion.div
-          whileHover={{
-            scale: 1.03,
-          }}
+        {/* AI status badge */}
+        <div
           className="
-            relative
-            overflow-hidden
-            flex
-            items-center
-            gap-4
-            rounded-3xl
-            border border-white/10
-            bg-white/[0.04]
-            px-6 py-4
-            backdrop-blur-2xl
-            shadow-[0_0_40px_rgba(99,102,241,0.15)]
-          "
+          flex items-center gap-2
+          px-3 py-1.5 rounded-full
+          border border-violet-500/20
+          bg-violet-500/[0.08] text-violet-300 text-[12px] font-semibold tracking-wide
+          shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] self-start sm:self-auto
+        "
         >
-          {/* glow */}
-          <div
-            className="
-              absolute
-              -top-10
-              -right-10
-              h-32
-              w-32
-              rounded-full
-              bg-violet-500/20
-              blur-3xl
-            "
-          />
-
-          <div
-            className="
-              relative
-              h-12
-              w-12
-              rounded-2xl
-              bg-gradient-to-br
-              from-violet-500
-              to-blue-500
-              flex
-              items-center
-              justify-center
-              shadow-[0_0_35px_rgba(99,102,241,0.35)]
-            "
-          >
-            <Sparkles size={20} />
+          <div className="relative flex h-1.5 w-1.5 mr-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-500"></span>
           </div>
-
-          <div className="relative">
-            <p className="text-sm font-semibold text-white">
-              AI Productivity Mode
-            </p>
-
-            <p className="text-xs text-zinc-400 mt-1">Smart insights enabled</p>
-          </div>
-        </motion.div>
+          System Active
+        </div>
       </div>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+      {/* ── STATS GRID ── */}
+      <motion.div
+        variants={staggerGrid}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-2 xl:grid-cols-4 gap-4"
+      >
+        {stats.map((stat) => {
           const Icon = stat.icon;
-
           return (
             <motion.div
               key={stat.title}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.1,
-              }}
-              whileHover={{
-                y: -8,
-                scale: 1.02,
-              }}
+              variants={fadeUp}
+              transition={{ duration: 0.32 }}
             >
-              <PremiumCard
-                className="
-                  group
-                  relative
-                  overflow-hidden
-                  rounded-[32px]
-                  p-7
-                "
-              >
-                {/* animated glow */}
+              <PremiumCard className="group relative overflow-hidden p-5 cursor-default hover:bg-white/[0.04] hover:border-white/[0.1] hover:shadow-[0_4px_24px_rgba(0,0,0,0.2)] transition-all duration-300">
+                {/* Subtle corner ambient glow */}
                 <div
-                  className={`
-                    absolute
-                    -top-10
-                    -right-10
-                    h-40
-                    w-40
-                    rounded-full
-                    blur-3xl
-                    opacity-20
-                    transition-all
-                    duration-500
-                    group-hover:scale-125
-                    bg-gradient-to-br
-                    ${stat.glow}
-                  `}
+                  className={`absolute -top-10 -right-10 h-32 w-32 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br ${stat.from} ${stat.to}`}
+                  style={{ opacity: 0.08 }}
                 />
 
-                <div className="relative z-10 flex items-start justify-between">
-                  <div>
-                    <p
-                      className="
-                        text-xs
-                        uppercase
-                        tracking-[0.2em]
-                        text-zinc-500
-                      "
-                    >
+                <div className="relative z-10">
+                  {/* top row */}
+                  <div className="flex items-start justify-between mb-4">
+                    <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 font-semibold">
                       {stat.title}
                     </p>
-
-                    <h2
-                      className="
-                        mt-5
-                        text-5xl
-                        font-black
-                        tracking-tight
-                        text-white
-                      "
+                    <div
+                      className={`
+                      h-8 w-8 rounded-lg flex items-center justify-center
+                      bg-gradient-to-br ${stat.from} ${stat.to}
+                      opacity-90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]
+                      transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6
+                    `}
                     >
-                      {stat.value}
-                    </h2>
-
-                    <p className="text-sm text-zinc-400 mt-3">
-                      {stat.subtitle}
-                    </p>
+                      <Icon
+                        size={14}
+                        className="text-white drop-shadow-md"
+                        strokeWidth={2}
+                      />
+                    </div>
                   </div>
 
-                  {/* ICON */}
-                  <div
-                    className={`
-                      flex
-                      h-16
-                      w-16
-                      items-center
-                      justify-center
-                      rounded-3xl
-                      border
-                      border-white/10
-                      bg-gradient-to-br
-                      ${stat.glow}
-                      bg-opacity-20
-                      backdrop-blur-xl
-                      transition-all
-                      duration-500
-                      group-hover:scale-110
-                      group-hover:rotate-6
-                    `}
-                  >
-                    <Icon size={28} className="text-white" />
+                  {/* value */}
+                  <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-none">
+                    <AnimatedCounter value={stat.value} />
+                    {stat.suffix}
+                  </h2>
+
+                  {/* delta */}
+                  <div className="flex items-center gap-1.5 mt-3">
+                    <span className="text-[11px] font-semibold text-emerald-400">
+                      {stat.delta}
+                    </span>
+                    <span className="text-[11px] text-zinc-500 font-medium">
+                      {stat.deltaLabel}
+                    </span>
                   </div>
                 </div>
               </PremiumCard>
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
 
-      {/* MAIN GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* ANALYTICS */}
-        <PremiumCard
-          className="
-            xl:col-span-2
-            p-7
-            min-h-[520px]
-            relative
-            overflow-hidden
-          "
-        >
-          {/* glow */}
-          <div
-            className="
-              absolute
-              top-0
-              right-0
-              h-72
-              w-72
-              rounded-full
-              bg-violet-500/10
-              blur-3xl
-            "
-          />
+      {/* ── MAIN GRID ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* ── ANALYTICS PANEL ── */}
+        <PremiumCard className="xl:col-span-2 relative overflow-hidden p-6">
+          {/* ambient glow */}
+          <div className="pointer-events-none absolute top-0 right-0 h-56 w-56 rounded-full bg-violet-500/[0.04] blur-[80px]" />
 
-          <div className="relative z-10">
-            {/* TOP */}
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative z-10 flex flex-col h-full">
+            {/* panel header */}
+            <div className="flex items-start justify-between mb-5">
               <div>
-                <h3 className="text-3xl font-bold text-white">
-                  Productivity Overview
+                <h3 className="text-[16px] font-semibold text-zinc-100 tracking-wide">
+                  Activity & Focus Trends
                 </h3>
-
-                <p className="text-zinc-400 mt-2">
-                  Weekly study performance analytics
+                <p className="text-zinc-500 text-[12.5px] mt-1">
+                  Weekly focus &amp; task analytics
                 </p>
               </div>
-
-              <div
-                className="
-                  px-5 py-2.5
-                  rounded-2xl
-                  bg-violet-500/10
-                  border border-violet-500/20
-                  text-sm text-violet-300
-                  backdrop-blur-xl
+              <div className="flex items-center gap-2">
+                {/* legend */}
+                <div className="hidden sm:flex items-center gap-4 mr-4">
+                  {[
+                    { color: "bg-violet-500", label: "Focus" },
+                    { color: "bg-cyan-500", label: "Tasks" },
+                  ].map((l) => (
+                    <div key={l.label} className="flex items-center gap-1.5">
+                      <div
+                        className={`h-[6px] w-[6px] rounded-full ${l.color} shadow-[0_0_8px_currentColor]`}
+                      />
+                      <span className="text-[12px] font-medium text-zinc-400">
+                        {l.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className="
+                  px-2.5 py-1 rounded-md
+                  bg-white/[0.03] border border-white/[0.08]
+                  text-[11px] text-zinc-400 font-medium tracking-wide
                 "
-              >
-                Live Analytics
+                >
+                  This Week
+                </div>
               </div>
             </div>
 
-            {/* MINI STATS */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {[
-                {
-                  label: "Focus Score",
-                  value: "92%",
-                },
-                {
-                  label: "Weekly Growth",
-                  value: "+18%",
-                },
-                {
-                  label: "Consistency",
-                  value: "7 Days",
-                },
-              ].map((item) => (
+            {/* mini stats row */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              {miniStats.map((m) => (
                 <div
-                  key={item.label}
+                  key={m.label}
                   className="
-                    rounded-2xl
-                    border border-white/10
-                    bg-white/[0.03]
-                    p-4
-                    backdrop-blur-xl
-                  "
+                  rounded-xl border border-white/[0.04]
+                  bg-[#0A0E1A] px-4 py-3 shadow-sm
+                "
                 >
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-                    {item.label}
+                  <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-zinc-500">
+                    {m.label}
                   </p>
-
-                  <h4 className="text-2xl font-bold text-white mt-3">
-                    {item.value}
+                  <h4 className="text-xl font-bold text-zinc-100 mt-1 tracking-tight">
+                    {m.value}
                   </h4>
+                  <p className="text-[11px] text-zinc-500 mt-1 font-medium">
+                    {m.sub}
+                  </p>
                 </div>
               ))}
             </div>
 
-            {/* CHART */}
+            {/* chart */}
             <div
               className="
-                h-[320px]
-                rounded-[28px]
-                border border-white/10
-                bg-gradient-to-br
-                from-white/[0.04]
-                to-white/[0.01]
-                p-5
-                backdrop-blur-2xl
-                relative
-                overflow-hidden
-              "
+              flex-1 min-h-[240px]
+              rounded-xl border border-white/[0.04]
+              bg-gradient-to-b from-[#0A0E1A] to-transparent
+              p-4 relative overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]
+            "
             >
-              {/* chart glow */}
-              <div
-                className="
-                  absolute
-                  bottom-0
-                  left-1/2
-                  -translate-x-1/2
-                  h-40
-                  w-96
-                  bg-violet-500/10
-                  blur-3xl
-                "
-              />
-
+              <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-28 w-72 bg-violet-500/[0.05] blur-[80px]" />
               <ProductivityChart />
             </div>
 
-            {/* BOTTOM INSIGHTS */}
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              <div
-                className="
-                  rounded-2xl
-                  border border-white/10
-                  bg-white/[0.03]
-                  p-5
+            {/* bottom insight row */}
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              {[
+                { label: "Peak Productivity", value: "Thursday Evening" },
+                { label: "AI Suggestion", value: "Add 2 more focus sessions" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="
+                  flex items-center justify-between
+                  rounded-xl border border-white/[0.04]
+                  bg-[#0A0E1A] px-4 py-3
+                  group cursor-default
+                  hover:border-white/[0.1] hover:bg-white/[0.04]
+                  transition-all duration-200
                 "
-              >
-                <p className="text-zinc-500 text-sm">Peak Productivity</p>
-
-                <h4 className="text-white text-xl font-bold mt-2">
-                  Thursday Evening
-                </h4>
-              </div>
-
-              <div
-                className="
-                  rounded-2xl
-                  border border-white/10
-                  bg-white/[0.03]
-                  p-5
-                "
-              >
-                <p className="text-zinc-500 text-sm">AI Suggestion</p>
-
-                <h4 className="text-white text-xl font-bold mt-2">
-                  Schedule more focus sessions
-                </h4>
-              </div>
+                >
+                  <div>
+                    <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-[0.1em]">
+                      {item.label}
+                    </p>
+                    <p className="text-[13px] font-medium text-zinc-200 mt-1">
+                      {item.value}
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={14}
+                    className="text-zinc-700 group-hover:text-violet-400 transition-colors duration-150 flex-shrink-0 ml-2"
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </PremiumCard>
 
-        {/* AI ASSISTANT */}
-        <PremiumCard className="p-7">
-          <div className="flex items-center justify-between mb-8">
+        {/* ── AI ASSISTANT PANEL ── */}
+        <PremiumCard className="relative overflow-hidden p-6 flex flex-col">
+          <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full bg-cyan-500/[0.04] blur-[80px]" />
+
+          {/* panel header */}
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-3xl font-bold text-white">AI Assistant</h3>
-
-              <p className="text-zinc-400 mt-2">Smart productivity insights</p>
+              <h3 className="text-[16px] font-semibold text-zinc-100 tracking-wide">
+                AI Assistant
+              </h3>
+              <p className="text-zinc-500 text-[12.5px] mt-1">
+                Personalized recommendations
+              </p>
             </div>
-
             <div
               className="
-                h-14
-                w-14
-                rounded-3xl
-                bg-gradient-to-br
-                from-cyan-500
-                to-blue-500
-                flex
-                items-center
-                justify-center
-                shadow-[0_0_35px_rgba(59,130,246,0.35)]
-              "
+              h-8 w-8 rounded-lg
+              bg-gradient-to-br from-cyan-500 to-blue-500
+              flex items-center justify-center
+              shadow-[0_0_15px_rgba(6,182,212,0.4)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]
+            "
             >
-              <Sparkles size={22} />
+              <Sparkles size={14} className="text-white drop-shadow-md" />
             </div>
           </div>
 
-          <div className="space-y-4">
-            {aiInsights.map((item, index) => {
+          {/* insight cards */}
+          <div className="flex flex-col gap-3 flex-1">
+            {aiInsights.map((item, i) => {
               const Icon = item.icon;
-
+              const colors = accentMap[item.accent];
               return (
                 <motion.div
                   key={item.title}
-                  initial={{
-                    opacity: 0,
-                    x: 20,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                  }}
-                  transition={{
-                    delay: index * 0.1,
-                  }}
-                  whileHover={{
-                    x: 4,
-                  }}
+                  initial={{ opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + i * 0.08, duration: 0.28 }}
                   className="
-                    group
-                    rounded-3xl
-                    bg-white/[0.04]
-                    border border-white/10
-                    p-5
-                    transition-all
-                    duration-300
-                    hover:bg-white/[0.06]
-                    hover:border-violet-500/20
+                    group relative
+                    rounded-xl border border-white/[0.04]
+                    bg-[#0A0E1A] p-4
+                    hover:bg-white/[0.04] hover:border-white/[0.1]
+                    transition-all duration-200 cursor-default
+                    overflow-hidden shadow-sm hover:shadow-md
                   "
                 >
-                  <div className="flex items-start gap-4">
+                  <div
+                    className={`absolute left-0 top-4 bottom-4 w-[3px] rounded-r-full opacity-60 shadow-[0_0_8px_currentColor] ${colors.bar}`}
+                  />
+
+                  <div className="flex items-start gap-3 pl-2">
                     <div
-                      className="
-                        h-11
-                        w-11
-                        rounded-2xl
-                        bg-gradient-to-br
-                        from-violet-500/20
-                        to-blue-500/20
-                        flex
-                        items-center
-                        justify-center
-                        border border-white/10
-                      "
+                      className={`
+                      h-8 w-8 flex-shrink-0 rounded-lg
+                      flex items-center justify-center
+                      border transition-colors duration-200
+                      ${colors.icon}
+                    `}
                     >
-                      <Icon size={18} className="text-violet-300" />
+                      <Icon size={14} strokeWidth={1.5} />
                     </div>
-
-                    <div>
-                      <h4 className="font-semibold text-white">{item.title}</h4>
-
-                      <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-[13px] font-semibold text-zinc-100 leading-none">
+                          {item.title}
+                        </h4>
+                        <span
+                          className={`
+                          px-1.5 py-0.5 rounded-[6px] text-[10px] font-medium border tracking-wide
+                          ${colors.tag}
+                        `}
+                        >
+                          {item.tag}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-zinc-500 mt-2 leading-relaxed font-medium">
                         {item.desc}
                       </p>
                     </div>
@@ -511,6 +456,20 @@ export default function Dashboard() {
               );
             })}
           </div>
+
+          {/* CTA */}
+          <button
+            className="
+            mt-5 w-full rounded-xl
+            bg-white/[0.03] border border-white/[0.08]
+            py-3 text-[12.5px] font-semibold text-zinc-200
+            hover:bg-white/[0.06] hover:border-violet-500/30
+            hover:text-white hover:shadow-[0_0_15px_rgba(139,92,246,0.15)]
+            transition-all duration-200
+          "
+          >
+            View Detailed Report
+          </button>
         </PremiumCard>
       </div>
     </motion.div>

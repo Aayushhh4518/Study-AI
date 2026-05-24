@@ -7,8 +7,7 @@ import {
 
 import DashboardShell from "./components/layout/dashboard-shell";
 import GlobalSearch from "./components/search/global-search";
-
-import "./components/layout/PageContainer";
+import AIAssistant from "./components/ui/AIAssistant";
 
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
@@ -17,34 +16,28 @@ import Schedule from "./pages/Schedule";
 import Settings from "./pages/Settings";
 import Subjects from "./pages/Subjects";
 import Tasks from "./pages/Tasks";
+import { DataProvider } from "./store/DataContext";
 
 function App() {
   return (
-    <Router>
-      <GlobalSearch />
-      <Routes>
-        <Route path="/" element={<DashboardShell />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
-
-          {/* DASHBOARD */}
-          <Route path="dashboard" element={<Dashboard />} />
-
-          {/* SUBJECTS */}
-          <Route path="subjects" element={<Subjects />} />
-
-          {/* PLACEHOLDER ROUTES */}
-          <Route path="tasks" element={<Tasks />} />
-
-          <Route path="focus" element={<FocusTimer />} />
-
-          <Route path="analytics" element={<Analytics />} />
-
-          <Route path="schedule" element={<Schedule />} />
-
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </Router>
+    <DataProvider>
+      <Router>
+        <GlobalSearch />
+        <AIAssistant />
+        <Routes>
+          <Route path="/" element={<DashboardShell />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="subjects" element={<Subjects />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="focus" element={<FocusTimer />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="schedule" element={<Schedule />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </Router>
+    </DataProvider>
   );
 }
 

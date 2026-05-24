@@ -1,4 +1,5 @@
 import React from "react";
+import { Toaster } from "sonner";
 import ReactDOM from "react-dom/client";
 
 import App from "./App";
@@ -12,6 +13,11 @@ ReactDOM.createRoot(
 ).render(
   <React.StrictMode>
     <ThemeProvider>
+      <Toaster
+  position="top-right"
+  richColors
+  theme="dark"
+/>
       <App />
     </ThemeProvider>
   </React.StrictMode>,

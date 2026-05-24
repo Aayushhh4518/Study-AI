@@ -1,20 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, BrainCircuit, Sparkles, User } from 'lucide-react';
+import { AnimatePresence, motion } from "framer-motion";
+import { Send, Sparkles, User, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, role: 'assistant', text: 'Hi Alex! I\'m your StudyAI assistant. How can I help you focus today?' }
+    {
+      id: 1,
+      role: "assistant",
+      text: "Hi Alex! I'm your StudyAI assistant. How can I help you focus today?",
+    },
   ]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   const quickPrompts = [
     "Summarize my tasks",
     "How to beat procrastination?",
-    "Generate a study schedule"
+    "Generate a study schedule",
   ];
 
   const scrollToBottom = () => {
@@ -29,23 +33,29 @@ export default function AIAssistant() {
     if (!text.trim()) return;
 
     // Add user message
-    const newMsg = { id: Date.now(), role: 'user', text };
-    setMessages(prev => [...prev, newMsg]);
-    setInputValue('');
+    const newMsg = { id: Date.now(), role: "user", text };
+    setMessages((prev) => [...prev, newMsg]);
+    setInputValue("");
     setIsTyping(true);
 
     // Simulate AI thinking and response
     setTimeout(() => {
       let reply = "I've noted that down. Let's keep focusing on your goals!";
       if (text.toLowerCase().includes("summarize")) {
-        reply = "You currently have 3 pending tasks, and your physics report is high priority.";
+        reply =
+          "You currently have 3 pending tasks, and your physics report is high priority.";
       } else if (text.toLowerCase().includes("procrastination")) {
-        reply = "Try the Pomodoro Timer! Just 25 minutes of deep focus can break the cycle of procrastination.";
+        reply =
+          "Try the Pomodoro Timer! Just 25 minutes of deep focus can break the cycle of procrastination.";
       } else if (text.toLowerCase().includes("schedule")) {
-        reply = "I recommend studying Physics for 2 hours in the morning, followed by a 30-minute break, then Math.";
+        reply =
+          "I recommend studying Physics for 2 hours in the morning, followed by a 30-minute break, then Math.";
       }
 
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', text: reply }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, role: "assistant", text: reply },
+      ]);
       setIsTyping(false);
     }, 1500);
   };
@@ -54,17 +64,30 @@ export default function AIAssistant() {
     <>
       {/* Floating Action Button */}
       <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ duration: 0.2 }}
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-indigo-500 transition-colors z-50 group"
+        className="
+          fixed bottom-6 right-6 z-50 group
+          h-[52px] w-[52px] rounded-2xl
+          bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500
+          text-white shadow-[0_0_20px_rgba(139,92,246,0.35)]
+          border border-white/20
+          flex items-center justify-center
+          hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:border-white/40
+          transition-all duration-300
+        "
       >
-        <Sparkles className="w-6 h-6 group-hover:scale-110 transition-transform" />
-        <span className="absolute -top-2 -right-2 flex h-4 w-4">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500"></span>
+        <Sparkles
+          size={22}
+          className="group-hover:scale-110 transition-transform duration-300 drop-shadow-md"
+        />
+        <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 ring-2 ring-[#050816]"></span>
         </span>
       </motion.button>
 
@@ -72,41 +95,72 @@ export default function AIAssistant() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="fixed bottom-24 right-6 w-[350px] sm:w-[400px] h-[600px] max-h-[80vh] bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl flex flex-col overflow-hidden z-50"
+            exit={{ opacity: 0, y: 15, scale: 0.96 }}
+            transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
+            className="
+              fixed bottom-24 right-6 z-50
+              w-[360px] sm:w-[400px] h-[600px] max-h-[80vh]
+              bg-[#0A0E1A]/95 backdrop-blur-2xl
+              border border-white/[0.08] rounded-3xl
+              shadow-[0_24px_60px_rgba(0,0,0,0.5)]
+              flex flex-col overflow-hidden
+            "
           >
+            {/* Ambient background glow inside the panel */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 blur-[80px] rounded-full pointer-events-none" />
+
             {/* Header */}
-            <div className="p-4 bg-slate-800/80 backdrop-blur-md border-b border-slate-700 flex justify-between items-center z-10 shrink-0">
+            <div className="px-5 py-4 border-b border-white/[0.04] bg-white/[0.01] flex justify-between items-center z-10 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center">
-                  <BrainCircuit className="w-5 h-5" />
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-[0_0_12px_rgba(139,92,246,0.4)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
+                  <Sparkles size={16} className="text-white drop-shadow-md" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">StudyAI Assistant</h3>
-                  <p className="text-xs text-emerald-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Online
+                  <h3 className="font-bold text-zinc-100 text-[14px] tracking-wide leading-none">
+                    StudyAI Assistant
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-1 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                    System Active
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 text-slate-400 hover:text-white transition-colors rounded-xl hover:bg-slate-700"
+                className="p-2 text-zinc-500 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05]"
               >
-                <X className="w-5 h-5" />
+                <X size={18} />
               </button>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 z-10 custom-scrollbar">
               {messages.map((msg) => (
-                <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-slate-700 text-white' : 'bg-indigo-600 text-white'}`}>
-                    {msg.role === 'user' ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                <div
+                  key={msg.id}
+                  className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${msg.role === "user" ? "bg-white/[0.05] border border-white/10 text-zinc-300" : "bg-gradient-to-br from-violet-500 to-indigo-500 text-white shadow-[0_0_12px_rgba(139,92,246,0.3)]"}`}
+                  >
+                    {msg.role === "user" ? (
+                      <User size={14} />
+                    ) : (
+                      <Sparkles size={14} />
+                    )}
                   </div>
-                  <div className={`p-3 rounded-2xl max-w-[80%] text-sm leading-relaxed ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'}`}>
+                  <div
+                    className={`
+                    px-4 py-3 max-w-[82%] text-[13px] leading-relaxed shadow-sm font-medium tracking-wide
+                    ${
+                      msg.role === "user"
+                        ? "bg-violet-500 text-white rounded-2xl rounded-tr-sm shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
+                        : "bg-white/[0.03] border border-white/[0.05] text-zinc-200 rounded-2xl rounded-tl-sm"
+                    }
+                  `}
+                  >
                     {msg.text}
                   </div>
                 </div>
@@ -114,13 +168,40 @@ export default function AIAssistant() {
 
               {isTyping && (
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-white shadow-[0_0_12px_rgba(139,92,246,0.3)] flex items-center justify-center shrink-0">
+                    <Sparkles size={14} />
                   </div>
-                  <div className="p-4 rounded-2xl bg-slate-800 border border-slate-700 rounded-tl-none flex gap-1 items-center">
-                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                  <div className="px-4 py-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] rounded-tl-sm flex gap-1.5 items-center">
+                    <motion.div
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 0.6,
+                        ease: "easeInOut",
+                        delay: 0,
+                      }}
+                      className="w-1.5 h-1.5 bg-zinc-500 rounded-full"
+                    />
+                    <motion.div
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 0.6,
+                        ease: "easeInOut",
+                        delay: 0.15,
+                      }}
+                      className="w-1.5 h-1.5 bg-zinc-500 rounded-full"
+                    />
+                    <motion.div
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 0.6,
+                        ease: "easeInOut",
+                        delay: 0.3,
+                      }}
+                      className="w-1.5 h-1.5 bg-zinc-500 rounded-full"
+                    />
                   </div>
                 </div>
               )}
@@ -129,12 +210,12 @@ export default function AIAssistant() {
 
             {/* Quick Prompts */}
             {messages.length < 3 && !isTyping && (
-              <div className="p-3 bg-slate-900 flex flex-wrap gap-2 shrink-0">
+              <div className="px-5 pb-3 pt-1 flex flex-wrap gap-2 shrink-0 z-10">
                 {quickPrompts.map((prompt, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(prompt)}
-                    className="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
+                    className="text-[11px] font-medium bg-white/[0.03] hover:bg-white/[0.08] text-violet-300 border border-white/[0.06] hover:border-violet-500/30 px-3 py-1.5 rounded-lg transition-all duration-200 whitespace-nowrap"
                   >
                     {prompt}
                   </button>
@@ -143,24 +224,41 @@ export default function AIAssistant() {
             )}
 
             {/* Input Area */}
-            <div className="p-3 bg-slate-800/50 border-t border-slate-700 shrink-0">
+            <div className="p-4 bg-[#0A0E1A] border-t border-white/[0.06] shrink-0 z-10">
               <form
-                onSubmit={(e) => { e.preventDefault(); handleSend(inputValue); }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSend(inputValue);
+                }}
                 className="flex items-center gap-2"
               >
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                  placeholder="Ask your AI assistant..."
-                  className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors placeholder-slate-500"
-                />
+                <div className="relative flex-1 group">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Ask StudyAI..."
+                    className="
+                      w-full bg-[#050812] border border-white/[0.06] text-zinc-200
+                      rounded-xl pl-4 pr-10 py-3 text-[13px] font-medium
+                      focus:outline-none focus:border-violet-500/40 focus:bg-violet-500/[0.02]
+                      focus:ring-4 focus:ring-violet-500/10 focus:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]
+                      transition-all duration-200 placeholder:text-zinc-600
+                    "
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={!inputValue.trim() || isTyping}
-                  className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="
+                    p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-300
+                    hover:bg-violet-500 hover:border-violet-500 hover:text-white
+                    hover:shadow-[0_0_15px_rgba(139,92,246,0.3)]
+                    transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+                    disabled:hover:bg-white/[0.04] disabled:hover:border-white/[0.08] disabled:hover:text-zinc-300 disabled:hover:shadow-none
+                  "
                 >
-                  <Send className="w-4 h-4" />
+                  <Send size={16} />
                 </button>
               </form>
             </div>
