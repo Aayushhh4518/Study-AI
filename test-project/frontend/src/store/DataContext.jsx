@@ -1,413 +1,1020 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useReducer,
 } from "react";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
 
-const initialData = {
+/* ─────────────────────────────────────────────────────────────
+   ACTION CONSTANTS
+───────────────────────────────────────────────────────────── */
+export const A = {
+  // Tasks
+  TASK_ADD: "TASK_ADD",
+  TASK_DELETE: "TASK_DELETE",
+  TASK_TOGGLE: "TASK_TOGGLE",
+  TASK_EDIT: "TASK_EDIT",
+
+  // Subjects
+  SUBJECT_ADD: "SUBJECT_ADD",
+  SUBJECT_DELETE: "SUBJECT_DELETE",
+  SUBJECT_UPDATE: "SUBJECT_UPDATE",
+  SUBJECT_UPDATE_PROGRESS: "SUBJECT_UPDATE_PROGRESS",
+
+  // Focus
+  FOCUS_RECORD_SESSION: "FOCUS_RECORD_SESSION",
+
+  // Schedule
+  SCHEDULE_ADD: "SCHEDULE_ADD",
+  SCHEDULE_DELETE: "SCHEDULE_DELETE",
+  SCHEDULE_UPDATE: "SCHEDULE_UPDATE",
+
+  // Settings
+  SETTINGS_UPDATE: "SETTINGS_UPDATE",
+
+  // Notifications
+  NOTIFICATIONS_MARK_READ: "NOTIFICATIONS_MARK_READ",
+  NOTIFICATION_ADD: "NOTIFICATION_ADD",
+
+  // Search
+  SEARCH_SET: "SEARCH_SET",
+};
+
+/* ─────────────────────────────────────────────────────────────
+   INITIAL STATE
+───────────────────────────────────────────────────────────── */
+const now = new Date();
+const todayISO = now.toISOString();
+
+const INITIAL_STATE = {
   tasks: [
     {
-      id: "1",
+      id: "t1",
       title: "Complete Physics Lab Report",
       due: "Today, 11:59 PM",
       priority: "High",
       color: "bg-rose-500",
       completed: false,
-      createdAt: new Date().toISOString(),
+      subject: "Physics",
+      createdAt: todayISO,
     },
     {
-      id: "2",
+      id: "t2",
       title: "Read Chapter 4: Data Structures",
       due: "Tomorrow, 9:00 AM",
       priority: "Medium",
       color: "bg-amber-500",
       completed: false,
-      createdAt: new Date().toISOString(),
+      subject: "Computer Science",
+      createdAt: todayISO,
+    },
+    {
+      id: "t3",
+      title: "Solve 10 Calculus Problems",
+      due: "Today, 6:00 PM",
+      priority: "High",
+      color: "bg-rose-500",
+      completed: true,
+      subject: "Mathematics",
+      createdAt: todayISO,
+    },
+    {
+      id: "t4",
+      title: "Review DBMS Normalization Notes",
+      due: "In 2 days",
+      priority: "Low",
+      color: "bg-sky-500",
+      completed: false,
+      subject: "Database Systems",
+      createdAt: todayISO,
     },
   ],
+
   subjects: [
     {
-      id: "1",
+      id: "s1",
       title: "Computer Science 101",
       progress: 75,
       color: "bg-indigo-500",
+      hoursStudied: 24,
     },
     {
-      id: "2",
+      id: "s2",
       title: "Advanced Mathematics",
       progress: 40,
       color: "bg-emerald-500",
+      hoursStudied: 18,
+    },
+    {
+      id: "s3",
+      title: "Physics",
+      progress: 58,
+      color: "bg-amber-500",
+      hoursStudied: 14,
+    },
+    {
+      id: "s4",
+      title: "Database Systems",
+      progress: 30,
+      color: "bg-pink-500",
+      hoursStudied: 10,
     },
   ],
+
   focusSessions: {
     totalCompleted: 14,
-    totalFocusMinutes: 128 * 60, // Default mock data: 128 hours
-    history: [], // { date, duration, subjectId }
+    totalFocusMinutes: 128 * 60,
+    history: [
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 0).toISOString(),
+        durationMinutes: 25,
+        subjectId: "s1",
+      },
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 1).toISOString(),
+        durationMinutes: 50,
+        subjectId: "s2",
+      },
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 2).toISOString(),
+        durationMinutes: 25,
+        subjectId: "s1",
+      },
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 3).toISOString(),
+        durationMinutes: 25,
+        subjectId: "s3",
+      },
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 4).toISOString(),
+        durationMinutes: 50,
+        subjectId: "s2",
+      },
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 5).toISOString(),
+        durationMinutes: 25,
+        subjectId: "s4",
+      },
+      {
+        id: uuidv4(),
+        date: new Date(Date.now() - 86400000 * 6).toISOString(),
+        durationMinutes: 25,
+        subjectId: "s1",
+      },
+    ],
   },
+
   analytics: {
     streakDays: 7,
-    lastActiveDate: new Date().toISOString(),
+    lastActiveDate: todayISO,
   },
+
+  schedule: [
+    {
+      id: "sc1",
+      subject: "Data Structures",
+      time: "7:00 PM - 8:30 PM",
+      type: "Deep Focus",
+      color: "from-violet-500 to-indigo-500",
+      date: todayISO,
+    },
+    {
+      id: "sc2",
+      subject: "DBMS Revision",
+      time: "9:00 PM - 10:00 PM",
+      type: "Revision",
+      color: "from-pink-500 to-rose-500",
+      date: todayISO,
+    },
+    {
+      id: "sc3",
+      subject: "AI Research",
+      time: "10:30 PM - 11:30 PM",
+      type: "Research",
+      color: "from-cyan-500 to-blue-500",
+      date: todayISO,
+    },
+  ],
+
   settings: {
     theme: "dark",
+    name: "Student",
+    email: "student@studyai.app",
+    plan: "Pro",
     notificationsEnabled: true,
     aiInsightsEnabled: true,
     pomodoroWorkTime: 25,
     pomodoroBreakTime: 5,
+    appearance: "system",
   },
+
   notifications: [
     {
       id: "n1",
       title: "Focus session complete",
       message: "25 min deep work done",
-      time: new Date().toISOString(),
+      time: todayISO,
       read: false,
       type: "success",
     },
-  ],
-  aiRecommendations: [
     {
-      id: "ai1",
-      title: "Peak Productivity",
-      desc: "You work best during evening hours. Consider moving complex tasks to 7PM.",
-      type: "insight",
+      id: "n2",
+      title: "AI insight ready",
+      message: "New productivity report available",
+      time: new Date(Date.now() - 3600000).toISOString(),
+      read: false,
+      type: "info",
+    },
+    {
+      id: "n3",
+      title: "Task deadline soon",
+      message: "Physics Lab Report due tonight",
+      time: new Date(Date.now() - 10800000).toISOString(),
+      read: false,
+      type: "warning",
     },
   ],
+
+  searchQuery: "",
 };
 
-const DataContext = createContext();
+/* ─────────────────────────────────────────────────────────────
+   HELPER UTILITIES
+───────────────────────────────────────────────────────────── */
 
-export const useData = () => useContext(DataContext);
+/** Returns a date string YYYY-MM-DD for a given Date object */
+function toDateStr(date) {
+  return date.toISOString().split("T")[0];
+}
 
-export const DataProvider = ({ children }) => {
-  const [data, setData] = useState(() => {
-    try {
-      const saved = localStorage.getItem("studyai_data");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Deep merge to ensure backward compatibility if schema changes
-        return {
-          ...initialData,
-          ...parsed,
-          settings: { ...initialData.settings, ...(parsed.settings || {}) },
-          analytics: { ...initialData.analytics, ...(parsed.analytics || {}) },
-          focusSessions: {
-            ...initialData.focusSessions,
-            ...(parsed.focusSessions || {}),
-          },
-        };
-      }
-      return initialData;
-    } catch (error) {
-      console.error("Failed to parse stored data:", error);
-      return initialData;
-    }
-  });
+/** Clamp a number between min and max */
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
-  const [searchQuery, setSearchQuery] = useState("");
+/**
+ * Recalculate streak given the current state's analytics and a new session timestamp.
+ * Returns updated { streakDays, lastActiveDate }.
+ */
+function recalcStreak(analytics, nowISO) {
+  const nowDate = new Date(nowISO);
+  const todayStr = toDateStr(nowDate);
+  const lastStr = analytics.lastActiveDate
+    ? toDateStr(new Date(analytics.lastActiveDate))
+    : null;
 
-  useEffect(() => {
-    localStorage.setItem("studyai_data", JSON.stringify(data));
-  }, [data]);
+  if (lastStr === todayStr) {
+    // Already active today — streak unchanged
+    return analytics;
+  }
 
-  // --- DERIVED ANALYTICS (Memoized to prevent unnecessary re-renders) ---
-  const stats = useMemo(() => {
-    const completedTasks = data.tasks.filter((t) => t.completed).length;
-    const pendingTasks = data.tasks.length - completedTasks;
-    const totalFocusHours =
-      Math.round((data.focusSessions.totalFocusMinutes / 60) * 10) / 10;
+  const yesterday = new Date(nowDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = toDateStr(yesterday);
 
-    // Dynamic Productivity Score Calculation (0-100 scale)
-    const baseScore = 50;
-    const taskBonus = completedTasks * 2;
-    const focusBonus = data.focusSessions.totalCompleted * 1.5;
-    const productivityScore = Math.min(
-      100,
-      Math.round(baseScore + taskBonus + focusBonus),
-    );
+  const newStreak = lastStr === yesterdayStr ? analytics.streakDays + 1 : 1;
 
-    return {
-      completedTasks,
-      pendingTasks,
-      totalTasks: data.tasks.length,
-      totalFocusHours,
-      productivityScore,
-      streak: data.analytics.streakDays,
-    };
-  }, [data.tasks, data.focusSessions, data.analytics.streakDays]);
+  return { streakDays: newStreak, lastActiveDate: nowISO };
+}
 
-  // --- LOCAL AI ENGINE (Dynamic Recommendation Generator) ---
-  const aiRecommendations = useMemo(() => {
-    const recs = [];
-    const { streakDays } = data.analytics;
-    const { tasks, focusSessions } = data;
-
-    // 1. Streak Analysis
-    if (streakDays >= 3) {
-      recs.push({
-        id: "ai-streak",
-        title: "Momentum Maintained",
-        desc: `You're on a ${streakDays}-day streak. Keep up the consistency to maximize retention.`,
-        type: "motivational",
-      });
-    } else if (streakDays === 0) {
-      recs.push({
-        id: "ai-streak-warn",
-        title: "Streak Lost",
-        desc: "You missed yesterday. Complete one focus session today to restart your momentum.",
-        type: "warning",
-      });
-    }
-
-    // 2. Task Analysis
-    const pendingHigh = tasks.filter(
-      (t) => t.priority === "High" && !t.completed,
-    ).length;
-    if (pendingHigh > 0) {
-      recs.push({
-        id: "ai-tasks",
-        title: "High Priority Alert",
-        desc: `You have ${pendingHigh} high priority task(s) pending. Tackle them first.`,
-        type: "warning",
-      });
-    }
-
-    const completedToday = tasks.filter((t) => t.completed).length;
-    if (completedToday >= 3) {
-      recs.push({
-        id: "ai-tasks-motivate",
-        title: "Task Crusher",
-        desc: `You've completed ${completedToday} tasks. Excellent productivity pace today!`,
-        type: "motivational",
-      });
-    }
-
-    // 3. Focus Session Analysis
-    const completedSessions = focusSessions.totalCompleted;
-    if (completedSessions > 0 && completedSessions % 4 === 0) {
-      recs.push({
-        id: "ai-focus-break",
-        title: "Long Break Needed",
-        desc: "You've completed 4 Pomodoro cycles. Take a 15-30 minute break to recharge.",
-        type: "insight",
-      });
-    }
-
-    // 4. Default / General Recommendations
-    if (recs.length < 2) {
-      recs.push({
-        id: "ai-default-1",
-        title: "Optimal Study Time",
-        desc: "AI suggests scheduling your most difficult subject during your morning peak energy hours.",
-        type: "recommendation",
-      });
-    }
-
-    if (recs.length < 3) {
-      recs.push({
-        id: "ai-default-2",
-        title: "Spaced Repetition",
-        desc: "Review material from 2 days ago to increase your long-term memory retention.",
-        type: "insight",
-      });
-    }
-
-    return recs;
-  }, [data.analytics.streakDays, data.tasks, data.focusSessions]);
-
-  // Inject dynamic AI recommendations into the provided data object
-  const enrichedData = useMemo(
-    () => ({
-      ...data,
-      aiRecommendations,
-    }),
-    [data, aiRecommendations],
-  );
-
-  // --- TASKS ACTIONS ---
-  const addTask = useCallback((task) => {
-    setData((prev) => ({
-      ...prev,
-      tasks: [
-        {
-          ...task,
-          id: uuidv4(),
-          completed: false,
-          createdAt: new Date().toISOString(),
-        },
-        ...prev.tasks,
-      ],
-    }));
-    toast.success("Task added successfully!");
-  }, []);
-
-  const toggleTask = useCallback((id) => {
-    setData((prev) => {
-      const isCompleting = !prev.tasks.find((t) => t.id === id)?.completed;
-      if (isCompleting) toast.success("Task completed! Great job 🎉");
+/* ─────────────────────────────────────────────────────────────
+   REDUCER
+───────────────────────────────────────────────────────────── */
+function reducer(state, action) {
+  switch (action.type) {
+    /* ── TASKS ── */
+    case A.TASK_ADD:
       return {
-        ...prev,
-        tasks: prev.tasks.map((t) =>
-          t.id === id ? { ...t, completed: !t.completed } : t,
+        ...state,
+        tasks: [
+          {
+            id: uuidv4(),
+            completed: false,
+            createdAt: new Date().toISOString(),
+            ...action.payload,
+          },
+          ...state.tasks,
+        ],
+      };
+
+    case A.TASK_DELETE:
+      return {
+        ...state,
+        tasks: state.tasks.filter((t) => t.id !== action.payload),
+      };
+
+    case A.TASK_TOGGLE:
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === action.payload ? { ...t, completed: !t.completed } : t,
         ),
       };
+
+    case A.TASK_EDIT:
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.id === action.payload.id ? { ...t, ...action.payload.updates } : t,
+        ),
+      };
+
+    /* ── SUBJECTS ── */
+    case A.SUBJECT_ADD:
+      return {
+        ...state,
+        subjects: [
+          ...state.subjects,
+          { id: uuidv4(), progress: 0, hoursStudied: 0, ...action.payload },
+        ],
+      };
+
+    case A.SUBJECT_DELETE:
+      return {
+        ...state,
+        subjects: state.subjects.filter((s) => s.id !== action.payload),
+      };
+
+    case A.SUBJECT_UPDATE:
+      return {
+        ...state,
+        subjects: state.subjects.map((s) =>
+          s.id === action.payload.id ? { ...s, ...action.payload.updates } : s,
+        ),
+      };
+
+    case A.SUBJECT_UPDATE_PROGRESS:
+      return {
+        ...state,
+        subjects: state.subjects.map((s) =>
+          s.id === action.payload.id
+            ? { ...s, progress: clamp(action.payload.progress, 0, 100) }
+            : s,
+        ),
+      };
+
+    /* ── FOCUS ── */
+    case A.FOCUS_RECORD_SESSION: {
+      const { durationMinutes = 25, subjectId = null } = action.payload;
+      const nowISO = new Date().toISOString();
+      return {
+        ...state,
+        focusSessions: {
+          ...state.focusSessions,
+          totalCompleted: state.focusSessions.totalCompleted + 1,
+          totalFocusMinutes:
+            state.focusSessions.totalFocusMinutes + durationMinutes,
+          history: [
+            ...state.focusSessions.history,
+            { id: uuidv4(), date: nowISO, durationMinutes, subjectId },
+          ],
+        },
+        analytics: recalcStreak(state.analytics, nowISO),
+      };
+    }
+
+    /* ── SCHEDULE ── */
+    case A.SCHEDULE_ADD:
+      return {
+        ...state,
+        schedule: [...state.schedule, { id: uuidv4(), ...action.payload }],
+      };
+
+    case A.SCHEDULE_DELETE:
+      return {
+        ...state,
+        schedule: state.schedule.filter((s) => s.id !== action.payload),
+      };
+
+    case A.SCHEDULE_UPDATE:
+      return {
+        ...state,
+        schedule: state.schedule.map((s) =>
+          s.id === action.payload.id ? { ...s, ...action.payload.updates } : s,
+        ),
+      };
+
+    /* ── SETTINGS ── */
+    case A.SETTINGS_UPDATE:
+      return {
+        ...state,
+        settings: { ...state.settings, ...action.payload },
+      };
+
+    /* ── NOTIFICATIONS ── */
+    case A.NOTIFICATIONS_MARK_READ:
+      return {
+        ...state,
+        notifications: state.notifications.map((n) => ({ ...n, read: true })),
+      };
+
+    case A.NOTIFICATION_ADD:
+      return {
+        ...state,
+        notifications: [
+          {
+            id: uuidv4(),
+            time: new Date().toISOString(),
+            read: false,
+            ...action.payload,
+          },
+          ...state.notifications,
+        ],
+      };
+
+    /* ── SEARCH ── */
+    case A.SEARCH_SET:
+      return { ...state, searchQuery: action.payload };
+
+    default:
+      return state;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PERSISTENCE HELPERS
+───────────────────────────────────────────────────────────── */
+const STORAGE_KEY = "studyai_data_v2";
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return INITIAL_STATE;
+    const saved = JSON.parse(raw);
+    // Deep merge: saved data wins, but new keys from INITIAL_STATE are added
+    return {
+      ...INITIAL_STATE,
+      ...saved,
+      settings: { ...INITIAL_STATE.settings, ...(saved.settings || {}) },
+      analytics: { ...INITIAL_STATE.analytics, ...(saved.analytics || {}) },
+      focusSessions: {
+        ...INITIAL_STATE.focusSessions,
+        ...(saved.focusSessions || {}),
+      },
+      notifications: saved.notifications ?? INITIAL_STATE.notifications,
+      schedule: saved.schedule ?? INITIAL_STATE.schedule,
+      searchQuery: "", // never persist search query
+    };
+  } catch {
+    return INITIAL_STATE;
+  }
+}
+
+function saveState(state) {
+  try {
+    // Don't persist transient search query
+    // eslint-disable-next-line no-unused-vars
+    const { searchQuery, ...persisted } = state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+  } catch {
+    // Quota exceeded or private mode — fail silently
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SELECTORS  (pure functions — memoized in context via useMemo)
+───────────────────────────────────────────────────────────── */
+
+/** Core task counters */
+function selectTaskStats(tasks) {
+  const completed = tasks.filter((t) => t.completed).length;
+  return {
+    total: tasks.length,
+    completed,
+    pending: tasks.length - completed,
+    highPriority: tasks.filter((t) => t.priority === "High" && !t.completed)
+      .length,
+  };
+}
+
+/** Core focus / productivity stats */
+function selectFocusStats(focusSessions, analytics) {
+  const totalHours =
+    Math.round((focusSessions.totalFocusMinutes / 60) * 10) / 10;
+  return {
+    totalCompleted: focusSessions.totalCompleted,
+    totalHours,
+    streak: analytics.streakDays,
+  };
+}
+
+/** Dynamic productivity score (0–100) */
+function selectProductivityScore(tasks, focusSessions) {
+  const completed = tasks.filter((t) => t.completed).length;
+  const score = clamp(
+    Math.round(50 + completed * 2 + focusSessions.totalCompleted * 1.5),
+    0,
+    100,
+  );
+  return score;
+}
+
+/**
+ * Build a 7-day chart dataset.
+ * Returns array of { day, focus, tasks } for Recharts.
+ */
+function selectWeeklyChartData(focusSessions, tasks) {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const today = new Date();
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (6 - i));
+    const dateStr = toDateStr(d);
+    const dayLabel = days[d.getDay()];
+
+    const focusHours =
+      focusSessions.history
+        .filter((s) => toDateStr(new Date(s.date)) === dateStr)
+        .reduce((acc, s) => acc + s.durationMinutes, 0) / 60;
+
+    const tasksCompleted = tasks.filter(
+      (t) => t.completed && toDateStr(new Date(t.createdAt)) === dateStr,
+    ).length;
+
+    return {
+      day: dayLabel,
+      focus: Math.round(focusHours * 10) / 10,
+      tasks: tasksCompleted,
+    };
+  });
+}
+
+/**
+ * Weekly productivity trend (last 4 weeks as % change).
+ * Returns array of { week, score }.
+ */
+function selectWeeklyTrend(focusSessions, tasks) {
+  const today = new Date();
+  return Array.from({ length: 4 }, (_, i) => {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - (3 - i) * 7 - 6);
+    const weekEnd = new Date(today);
+    weekEnd.setDate(today.getDate() - (3 - i) * 7);
+
+    const focusMins = focusSessions.history
+      .filter((s) => {
+        const d = new Date(s.date);
+        return d >= weekStart && d <= weekEnd;
+      })
+      .reduce((acc, s) => acc + s.durationMinutes, 0);
+
+    const completedTasks = tasks.filter((t) => {
+      const d = new Date(t.createdAt);
+      return t.completed && d >= weekStart && d <= weekEnd;
+    }).length;
+
+    return {
+      week: `W${i + 1}`,
+      score: clamp(
+        Math.round((focusMins / 60) * 5 + completedTasks * 3),
+        0,
+        100,
+      ),
+    };
+  });
+}
+
+/** Search filter across tasks, subjects, schedule */
+function selectSearchResults(state) {
+  const q = state.searchQuery.toLowerCase().trim();
+  if (!q) return { tasks: [], subjects: [], schedule: [] };
+  return {
+    tasks: state.tasks.filter((t) => t.title.toLowerCase().includes(q)),
+    subjects: state.subjects.filter((s) => s.title.toLowerCase().includes(q)),
+    schedule: state.schedule.filter((s) => s.subject.toLowerCase().includes(q)),
+  };
+}
+
+/* ─────────────────────────────────────────────────────────────
+   AI INSIGHT ENGINE
+───────────────────────────────────────────────────────────── */
+function generateAIInsights(state, productivityScore) {
+  const { tasks, focusSessions, analytics, subjects } = state;
+  const insights = [];
+
+  const pendingHigh = tasks.filter(
+    (t) => t.priority === "High" && !t.completed,
+  ).length;
+  const completedAny = tasks.filter((t) => t.completed).length;
+  const streak = analytics.streakDays;
+
+  // 1. Streak insight
+  if (streak >= 7) {
+    insights.push({
+      id: "ai-streak-7",
+      title: "Elite Consistency",
+      desc: `${streak}-day streak! You're in the top tier of learners. Protect your rhythm.`,
+      tag: `${streak}d streak`,
+      type: "motivational",
+      accent: "violet",
     });
+  } else if (streak >= 3) {
+    insights.push({
+      id: "ai-streak-3",
+      title: "Momentum Building",
+      desc: `${streak}-day streak active. Consistency is your compound interest — keep going.`,
+      tag: `${streak}d streak`,
+      type: "motivational",
+      accent: "cyan",
+    });
+  } else if (streak === 0) {
+    insights.push({
+      id: "ai-streak-zero",
+      title: "Restart Today",
+      desc: "Complete one focus session to rebuild your streak and reactivate your momentum.",
+      tag: "Action needed",
+      type: "warning",
+      accent: "amber",
+    });
+  }
+
+  // 2. High priority task alert
+  if (pendingHigh > 0) {
+    insights.push({
+      id: "ai-highpriority",
+      title: "High Priority Alert",
+      desc: `${pendingHigh} high-priority task${pendingHigh > 1 ? "s" : ""} pending. Address these first for maximum impact.`,
+      tag: `${pendingHigh} urgent`,
+      type: "warning",
+      accent: "rose",
+    });
+  }
+
+  // 3. Task completion praise
+  if (completedAny >= 5) {
+    insights.push({
+      id: "ai-tasks-great",
+      title: "Task Crusher",
+      desc: `${completedAny} tasks completed. You're operating at peak efficiency.`,
+      tag: `+${completedAny} done`,
+      type: "motivational",
+      accent: "emerald",
+    });
+  } else if (completedAny >= 2) {
+    insights.push({
+      id: "ai-tasks-good",
+      title: "Good Progress",
+      desc: `${completedAny} tasks done. Keep chipping away — consistency beats intensity.`,
+      tag: `${completedAny} done`,
+      type: "insight",
+      accent: "cyan",
+    });
+  }
+
+  // 4. Pomodoro long-break reminder
+  const completed = focusSessions.totalCompleted;
+  if (completed > 0 && completed % 4 === 0) {
+    insights.push({
+      id: "ai-longbreak",
+      title: "Long Break Due",
+      desc: "You've completed 4 Pomodoro cycles. Take a 15–30 min break to consolidate memory.",
+      tag: "Rest cycle",
+      type: "insight",
+      accent: "indigo",
+    });
+  }
+
+  // 5. Weak subject nudge
+  const weakSubject = subjects
+    .slice()
+    .sort((a, b) => a.progress - b.progress)[0];
+  if (weakSubject && weakSubject.progress < 50) {
+    insights.push({
+      id: "ai-weak-subject",
+      title: "Focus Gap Detected",
+      desc: `${weakSubject.title} is at ${weakSubject.progress}% progress. Prioritize it this week.`,
+      tag: `${weakSubject.progress}% done`,
+      type: "recommendation",
+      accent: "amber",
+    });
+  }
+
+  // 6. Productivity score insight
+  if (productivityScore >= 85) {
+    insights.push({
+      id: "ai-score-high",
+      title: "Peak Productivity",
+      desc: `Productivity score: ${productivityScore}/100. You're firing on all cylinders today.`,
+      tag: `Score ${productivityScore}`,
+      type: "motivational",
+      accent: "violet",
+    });
+  } else if (productivityScore < 60) {
+    insights.push({
+      id: "ai-score-low",
+      title: "Boost Needed",
+      desc: `Score ${productivityScore}/100. Complete 2 tasks and a focus session to lift your numbers.`,
+      tag: `Score ${productivityScore}`,
+      type: "recommendation",
+      accent: "amber",
+    });
+  }
+
+  // 7. Default padders (ensure minimum 3 cards always shown)
+  if (insights.length < 3) {
+    insights.push({
+      id: "ai-spaced-rep",
+      title: "Spaced Repetition",
+      desc: "Review material from 2 days ago to significantly increase long-term retention.",
+      tag: "Memory tip",
+      type: "insight",
+      accent: "cyan",
+    });
+  }
+  if (insights.length < 3) {
+    insights.push({
+      id: "ai-optimal-time",
+      title: "Optimal Study Window",
+      desc: "AI detects your peak focus window is 7 PM – 9 PM. Schedule hard topics then.",
+      tag: "7–9 PM",
+      type: "recommendation",
+      accent: "indigo",
+    });
+  }
+
+  return insights.slice(0, 5);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CONTEXT
+───────────────────────────────────────────────────────────── */
+const DataContext = createContext(null);
+
+export const useData = () => {
+  const ctx = useContext(DataContext);
+  if (!ctx) throw new Error("useData must be used inside <DataProvider>");
+  return ctx;
+};
+
+/* ─────────────────────────────────────────────────────────────
+   PROVIDER
+───────────────────────────────────────────────────────────── */
+export function DataProvider({ children }) {
+  const [state, dispatch] = useReducer(reducer, undefined, loadState);
+
+  /* Persist every state change (debounce not needed — localStorage is sync & fast) */
+  useEffect(() => {
+    saveState(state);
+  }, [state]);
+
+  /* Apply persisted theme class to <html> */
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.remove("dark", "light");
+    html.classList.add(state.settings.theme);
+  }, [state.settings.theme]);
+
+  /* ── Memoized selectors ── */
+
+  const taskStats = useMemo(() => selectTaskStats(state.tasks), [state.tasks]);
+
+  const focusStats = useMemo(
+    () => selectFocusStats(state.focusSessions, state.analytics),
+    [state.focusSessions, state.analytics],
+  );
+
+  const productivityScore = useMemo(
+    () => selectProductivityScore(state.tasks, state.focusSessions),
+    [state.tasks, state.focusSessions],
+  );
+
+  const weeklyChartData = useMemo(
+    () => selectWeeklyChartData(state.focusSessions, state.tasks),
+    [state.focusSessions, state.tasks],
+  );
+
+  const weeklyTrend = useMemo(
+    () => selectWeeklyTrend(state.focusSessions, state.tasks),
+    [state.focusSessions, state.tasks],
+  );
+
+  const aiInsights = useMemo(
+    () => generateAIInsights(state, productivityScore),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      state.tasks,
+      state.focusSessions,
+      state.analytics,
+      state.subjects,
+      productivityScore,
+    ],
+  );
+
+  const searchResults = useMemo(
+    () => selectSearchResults(state),
+    [state.searchQuery, state.tasks, state.subjects, state.schedule],
+  );
+
+  const unreadNotifications = useMemo(
+    () => state.notifications.filter((n) => !n.read).length,
+    [state.notifications],
+  );
+
+  /* ── Action dispatchers (stable references via useCallback) ── */
+
+  const addTask = useCallback((task) => {
+    dispatch({ type: A.TASK_ADD, payload: task });
+    toast.success("Task added!");
   }, []);
 
   const deleteTask = useCallback((id) => {
-    setData((prev) => ({
-      ...prev,
-      tasks: prev.tasks.filter((t) => t.id !== id),
-    }));
-    toast.success("Task deleted.");
+    dispatch({ type: A.TASK_DELETE, payload: id });
+    toast.success("Task removed.");
   }, []);
 
-  // --- SUBJECTS ACTIONS ---
+  const toggleTask = useCallback((id) => {
+    dispatch({ type: A.TASK_TOGGLE, payload: id });
+  }, []);
+
+  const editTask = useCallback((id, updates) => {
+    dispatch({ type: A.TASK_EDIT, payload: { id, updates } });
+    toast.success("Task updated.");
+  }, []);
+
   const addSubject = useCallback((subject) => {
-    setData((prev) => ({
-      ...prev,
-      subjects: [...prev.subjects, { ...subject, id: uuidv4(), progress: 0 }],
-    }));
+    dispatch({ type: A.SUBJECT_ADD, payload: subject });
     toast.success("Subject added!");
   }, []);
 
   const deleteSubject = useCallback((id) => {
-    setData((prev) => ({
-      ...prev,
-      subjects: prev.subjects.filter((s) => s.id !== id),
-    }));
+    dispatch({ type: A.SUBJECT_DELETE, payload: id });
   }, []);
 
-  const updateSubject = useCallback((id, updatedData) => {
-    setData((prev) => ({
-      ...prev,
-      subjects: prev.subjects.map((s) =>
-        s.id === id ? { ...s, ...updatedData } : s,
-      ),
-    }));
-    toast.success("Subject updated!");
+  const updateSubject = useCallback((id, updates) => {
+    dispatch({ type: A.SUBJECT_UPDATE, payload: { id, updates } });
+    toast.success("Subject updated.");
   }, []);
 
   const updateSubjectProgress = useCallback((id, progress) => {
-    setData((prev) => ({
-      ...prev,
-      subjects: prev.subjects.map((s) =>
-        s.id === id ? { ...s, progress } : s,
-      ),
-    }));
+    dispatch({ type: A.SUBJECT_UPDATE_PROGRESS, payload: { id, progress } });
   }, []);
 
-  // --- FOCUS & ANALYTICS ACTIONS ---
   const recordFocusSession = useCallback(
     (durationMinutes = 25, subjectId = null) => {
-      setData((prev) => {
-        const now = new Date();
-        const todayString = now.toISOString().split("T")[0];
-
-        // Streak tracking calculation
-        let newStreak = prev.analytics.streakDays;
-        const lastActiveStr = prev.analytics.lastActiveDate
-          ? prev.analytics.lastActiveDate.split("T")[0]
-          : null;
-
-        if (lastActiveStr !== todayString) {
-          const yesterday = new Date(now);
-          yesterday.setDate(yesterday.getDate() - 1);
-
-          if (lastActiveStr === yesterday.toISOString().split("T")[0]) {
-            newStreak += 1;
-          } else {
-            newStreak = 1;
-          }
-        }
-
-        return {
-          ...prev,
-          focusSessions: {
-            ...prev.focusSessions,
-            totalCompleted: prev.focusSessions.totalCompleted + 1,
-            totalFocusMinutes:
-              prev.focusSessions.totalFocusMinutes + durationMinutes,
-            history: [
-              ...prev.focusSessions.history,
-              {
-                id: uuidv4(),
-                date: now.toISOString(),
-                durationMinutes,
-                subjectId,
-              },
-            ],
-          },
-          analytics: {
-            ...prev.analytics,
-            streakDays: newStreak,
-            lastActiveDate: now.toISOString(),
-          },
-        };
+      dispatch({
+        type: A.FOCUS_RECORD_SESSION,
+        payload: { durationMinutes, subjectId },
       });
-      toast.success(`Logged ${durationMinutes} minutes of deep work!`);
+      dispatch({
+        type: A.NOTIFICATION_ADD,
+        payload: {
+          title: "Focus session complete",
+          message: `${durationMinutes} min deep work logged.`,
+          type: "success",
+        },
+      });
+      toast.success(`${durationMinutes} min session logged!`);
     },
     [],
   );
 
-  // --- SETTINGS ACTIONS ---
+  const addScheduleSession = useCallback((session) => {
+    dispatch({ type: A.SCHEDULE_ADD, payload: session });
+    toast.success("Session scheduled.");
+  }, []);
+
+  const deleteScheduleSession = useCallback((id) => {
+    dispatch({ type: A.SCHEDULE_DELETE, payload: id });
+  }, []);
+
+  const updateScheduleSession = useCallback((id, updates) => {
+    dispatch({ type: A.SCHEDULE_UPDATE, payload: { id, updates } });
+  }, []);
+
   const updateSettings = useCallback((newSettings) => {
-    setData((prev) => ({
-      ...prev,
-      settings: { ...prev.settings, ...newSettings },
-    }));
-    toast.success("Settings updated");
+    dispatch({ type: A.SETTINGS_UPDATE, payload: newSettings });
+    toast.success("Settings saved.");
   }, []);
 
-  // --- NOTIFICATIONS ACTIONS ---
   const markNotificationsRead = useCallback(() => {
-    setData((prev) => ({
-      ...prev,
-      notifications: prev.notifications.map((n) => ({ ...n, read: true })),
-    }));
+    dispatch({ type: A.NOTIFICATIONS_MARK_READ });
   }, []);
 
-  // Memoize context value strictly to prevent deep tree re-renders
-  const contextValue = useMemo(
+  const setSearchQuery = useCallback((query) => {
+    dispatch({ type: A.SEARCH_SET, payload: query });
+  }, []);
+
+  /* ── Unified stats object consumed by Dashboard / Analytics ── */
+  const stats = useMemo(
     () => ({
-      data: enrichedData,
+      // Tasks
+      totalTasks: taskStats.total,
+      completedTasks: taskStats.completed,
+      pendingTasks: taskStats.pending,
+      highPriorityTasks: taskStats.highPriority,
+      // Focus
+      totalFocusHours: focusStats.totalHours,
+      focusSessions: focusStats.totalCompleted,
+      streak: focusStats.streak,
+      // Subjects
+      totalSubjects: state.subjects.length,
+      activeSubjects: state.subjects.filter(
+        (s) => s.progress > 0 && s.progress < 100,
+      ).length,
+      // Score
+      productivityScore,
+    }),
+    [taskStats, focusStats, productivityScore, state.subjects],
+  );
+
+  /* ── Final context value — stable shape ── */
+  const value = useMemo(
+    () => ({
+      // Raw state slices (read-only)
+      data: {
+        tasks: state.tasks,
+        subjects: state.subjects,
+        focusSessions: state.focusSessions,
+        analytics: state.analytics,
+        schedule: state.schedule,
+        settings: state.settings,
+        notifications: state.notifications,
+      },
+
+      // Derived / computed
       stats,
-      searchQuery,
-      setSearchQuery,
+      aiInsights,
+      weeklyChartData,
+      weeklyTrend,
+      searchQuery: state.searchQuery,
+      searchResults,
+      unreadNotifications,
+      productivityScore,
+
+      // Task actions
       addTask,
-      toggleTask,
       deleteTask,
+      toggleTask,
+      editTask,
+
+      // Subject actions
       addSubject,
       deleteSubject,
       updateSubject,
       updateSubjectProgress,
+
+      // Focus actions
       recordFocusSession,
+
+      // Schedule actions
+      addScheduleSession,
+      deleteScheduleSession,
+      updateScheduleSession,
+
+      // Settings actions
       updateSettings,
+
+      // Notification actions
       markNotificationsRead,
+
+      // Search
+      setSearchQuery,
     }),
     [
-      enrichedData,
+      state.tasks,
+      state.subjects,
+      state.focusSessions,
+      state.analytics,
+      state.schedule,
+      state.settings,
+      state.notifications,
+      state.searchQuery,
       stats,
-      searchQuery,
+      aiInsights,
+      weeklyChartData,
+      weeklyTrend,
+      searchResults,
+      unreadNotifications,
+      productivityScore,
       addTask,
-      toggleTask,
       deleteTask,
+      toggleTask,
+      editTask,
       addSubject,
       deleteSubject,
       updateSubject,
       updateSubjectProgress,
       recordFocusSession,
+      addScheduleSession,
+      deleteScheduleSession,
+      updateScheduleSession,
       updateSettings,
       markNotificationsRead,
+      setSearchQuery,
     ],
   );
 
-  return (
-    <DataContext.Provider value={contextValue}>{children}</DataContext.Provider>
-  );
-};
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+}
