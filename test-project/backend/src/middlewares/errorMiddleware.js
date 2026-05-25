@@ -1,15 +1,10 @@
-/**
- * Global error handling middleware.
- * Formats errors consistently across the entire API.
- */
-const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode ? res.statusCode : 500;
+const errorMiddleware = (err, req, res, next) => {
+  console.error(err.stack);
 
-  res.status(statusCode).json({
-    message: err.message,
-    // Provide stack trace only in development mode
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Server Error",
   });
 };
 
-module.exports = { errorHandler };
+export default errorMiddleware;
