@@ -205,7 +205,7 @@ export default function Analytics() {
         <div>
           <h1
             className="
-              text-3xl font-bold tracking-tight leading-none
+              text-3xl sm:text-4xl font-bold tracking-tight leading-none
               bg-gradient-to-r from-white via-zinc-100 to-zinc-400
               bg-clip-text text-transparent
             "
@@ -238,13 +238,13 @@ export default function Analytics() {
       {/* TOP STATS */}
       <motion.div
         variants={staggerContainer}
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
         {topStats.map((item) => {
           const Icon = item.icon;
           return (
             <motion.div key={item.title} variants={fadeUp}>
-              <PremiumCard className="group relative overflow-hidden p-5 hover:bg-white/[0.04] hover:border-white/[0.1] hover:shadow-[0_4px_24px_rgba(0,0,0,0.2)] transition-all duration-300">
+              <PremiumCard className="group relative overflow-hidden p-4 sm:p-5 hover:bg-white/[0.04] hover:border-white/[0.1] hover:shadow-[0_4px_24px_rgba(0,0,0,0.2)] transition-all duration-300">
                 {/* Subtle corner ambient glow */}
                 <div
                   className={`absolute -top-10 -right-10 h-32 w-32 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br ${item.glow} to-transparent`}
@@ -256,7 +256,7 @@ export default function Analytics() {
                     <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 font-semibold">
                       {item.title}
                     </p>
-                    <h2 className="text-3xl font-bold mt-2 text-zinc-100 tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-bold mt-1.5 sm:mt-2 text-zinc-100 tracking-tight">
                       {item.value}
                     </h2>
                     <p className="text-[11px] font-medium text-zinc-500 mt-1.5">
@@ -286,11 +286,11 @@ export default function Analytics() {
       {/* MAIN GRID */}
       <motion.div
         variants={staggerContainer}
-        className="grid grid-cols-1 xl:grid-cols-3 gap-5"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-5"
       >
         {/* CHART */}
-        <motion.div variants={fadeUp} className="xl:col-span-2">
-          <PremiumCard className="h-full relative overflow-hidden p-6 flex flex-col">
+        <motion.div variants={fadeUp} className="lg:col-span-2">
+          <PremiumCard className="h-full relative overflow-hidden p-4 sm:p-6 flex flex-col">
             <div className="pointer-events-none absolute top-0 right-0 h-64 w-64 rounded-full bg-violet-500/[0.03] blur-[80px]" />
 
             <div className="flex items-start justify-between mb-5 relative z-10">
@@ -307,7 +307,7 @@ export default function Analytics() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-[300px] rounded-xl border border-white/[0.04] bg-gradient-to-b from-[#0A0E1A] to-transparent p-4 relative overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] z-10">
+            <div className="flex-1 min-h-[250px] sm:min-h-[300px] rounded-xl border border-white/[0.04] bg-gradient-to-b from-[#0A0E1A] to-transparent p-4 relative overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] z-10">
               <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-28 w-72 bg-violet-500/[0.05] blur-[80px]" />
               <FocusAreaChart data={focusData} />
             </div>
@@ -316,7 +316,7 @@ export default function Analytics() {
 
         {/* AI INSIGHTS */}
         <motion.div variants={fadeUp}>
-          <PremiumCard className="h-full relative overflow-hidden p-6 flex flex-col">
+          <PremiumCard className="h-full relative overflow-hidden p-4 sm:p-6 flex flex-col mt-5 lg:mt-0">
             <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-cyan-500/[0.04] blur-[80px]" />
 
             <div className="flex items-center justify-between mb-5 relative z-10">
@@ -392,7 +392,7 @@ export default function Analytics() {
         className="grid grid-cols-1 md:grid-cols-2 gap-5"
       >
         <motion.div variants={fadeUp}>
-          <PremiumCard className="relative overflow-hidden p-6 flex flex-col h-[320px]">
+          <PremiumCard className="relative overflow-hidden p-4 sm:p-6 flex flex-col h-[280px] sm:h-[320px]">
             <div className="pointer-events-none absolute top-0 left-0 h-48 w-48 rounded-full bg-rose-500/[0.03] blur-[80px]" />
             <div className="relative z-10 mb-4">
               <h3 className="text-[16px] font-semibold text-zinc-100 tracking-wide">
@@ -415,7 +415,7 @@ export default function Analytics() {
         </motion.div>
 
         <motion.div variants={fadeUp}>
-          <PremiumCard className="relative overflow-hidden p-6 flex flex-col h-[320px]">
+          <PremiumCard className="relative overflow-hidden p-4 sm:p-6 flex flex-col h-[280px] sm:h-[320px]">
             <div className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 rounded-full bg-blue-500/[0.03] blur-[80px]" />
             <div className="relative z-10 mb-4">
               <h3 className="text-[16px] font-semibold text-zinc-100 tracking-wide">
@@ -441,7 +441,7 @@ export default function Analytics() {
       {/* BOTTOM ANALYTICS */}
       <motion.div
         variants={staggerContainer}
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
       >
         {[
           {
@@ -549,13 +549,13 @@ function DetailedReportModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-4xl max-h-[85vh] flex flex-col bg-[#0A0E1A] border border-white/10 rounded-[2rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] z-10 overflow-hidden"
+        className="relative w-full max-w-4xl max-h-[85vh] flex flex-col bg-[#0A0E1A] border border-white/10 rounded-3xl sm:rounded-[2rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] z-10 overflow-hidden"
       >
         {/* Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-32 bg-violet-500/20 blur-[100px] pointer-events-none" />
 
         {/* Header */}
-        <div className="px-8 py-6 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.01] shrink-0 relative z-10">
+        <div className="px-5 sm:px-8 py-4 sm:py-6 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.01] shrink-0 relative z-10">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.3)] border border-white/10">
               <Sparkles size={22} className="text-white drop-shadow-md" />
@@ -578,18 +578,18 @@ function DetailedReportModal({
         </div>
 
         {/* Scrollable Body */}
-        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-10 relative z-10">
+        <div className="p-5 sm:p-8 overflow-y-auto custom-scrollbar flex-1 space-y-8 sm:space-y-10 relative z-10">
           {/* Executive Summary */}
           <section>
             <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-4 pl-1">
               Executive Summary
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
                 <div className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">
                   Overall Efficiency
                 </div>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {stats.productivityScore}%
                 </div>
                 <div className="text-sm font-medium text-emerald-400">
@@ -598,22 +598,22 @@ function DetailedReportModal({
                     : "Room for improvement"}
                 </div>
               </div>
-              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
                 <div className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">
                   Task Completion
                 </div>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {completedRatio}%
                 </div>
                 <div className="text-sm font-medium text-blue-400">
                   {stats.completedTasks} of {stats.totalTasks} tasks done
                 </div>
               </div>
-              <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
                 <div className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">
                   Burnout Risk
                 </div>
-                <div className="text-3xl font-bold text-white mb-1">
+                <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
                   {burnoutRisk}
                 </div>
                 <div
@@ -629,7 +629,7 @@ function DetailedReportModal({
 
           {/* Visual Breakdown */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <div className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-5">
                 Task Breakdown
               </div>
@@ -667,7 +667,7 @@ function DetailedReportModal({
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+            <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
               <div className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-5">
                 Session Efficiency
               </div>
@@ -695,7 +695,7 @@ function DetailedReportModal({
 
           {/* Subject Analysis */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/10 relative overflow-hidden">
+            <div className="p-5 sm:p-6 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] pointer-events-none" />
               <div className="flex items-center gap-2.5 mb-4 text-emerald-400 relative z-10">
                 <TrendingUp size={18} strokeWidth={2.5} />
@@ -706,7 +706,7 @@ function DetailedReportModal({
               <div className="relative z-10">
                 {strongestSubject ? (
                   <>
-                    <div className="text-2xl font-bold text-white mb-2">
+                    <div className="text-xl sm:text-2xl font-bold text-white mb-2">
                       {strongestSubject.title}
                     </div>
                     <p className="text-sm text-zinc-400 leading-relaxed">
@@ -723,7 +723,7 @@ function DetailedReportModal({
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-rose-500/[0.03] border border-rose-500/10 relative overflow-hidden">
+            <div className="p-5 sm:p-6 rounded-2xl bg-rose-500/[0.03] border border-rose-500/10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 blur-[50px] pointer-events-none" />
               <div className="flex items-center gap-2.5 mb-4 text-rose-400 relative z-10">
                 <AlertTriangle size={18} strokeWidth={2.5} />
@@ -734,7 +734,7 @@ function DetailedReportModal({
               <div className="relative z-10">
                 {weakestSubject ? (
                   <>
-                    <div className="text-2xl font-bold text-white mb-2">
+                    <div className="text-xl sm:text-2xl font-bold text-white mb-2">
                       {weakestSubject.title}
                     </div>
                     <p className="text-sm text-zinc-400 leading-relaxed">
@@ -767,7 +767,7 @@ function DetailedReportModal({
               AI Action Plan
             </h4>
             <div className="space-y-4">
-              <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4 hover:bg-white/[0.03] transition-colors">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4 hover:bg-white/[0.03] transition-colors">
                 <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
                   <Lightbulb className="text-amber-400" size={20} />
                 </div>
@@ -785,7 +785,7 @@ function DetailedReportModal({
                   </div>
                 </div>
               </div>
-              <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4 hover:bg-white/[0.03] transition-colors">
+              <div className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex gap-4 hover:bg-white/[0.03] transition-colors">
                 <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20">
                   <CheckCircle2 className="text-blue-400" size={20} />
                 </div>

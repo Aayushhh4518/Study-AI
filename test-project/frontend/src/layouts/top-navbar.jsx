@@ -40,7 +40,7 @@ const Highlight = ({ text, highlight }) => {
         regex.test(part) ? (
           <span
             key={i}
-            className="text-indigo-500 font-semibold bg-indigo-500/10 rounded px-0.5"
+            className="text-violet-300 font-semibold bg-violet-500/20 rounded px-0.5"
           >
             {part}
           </span>
@@ -54,13 +54,6 @@ const Highlight = ({ text, highlight }) => {
 
 // --- Utility: Avatar Component ---
 const Avatar = ({ profile }) => {
-  const initials =
-    profile.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2) || "U";
-
   if (profile.avatar) {
     return (
       <img
@@ -70,6 +63,13 @@ const Avatar = ({ profile }) => {
       />
     );
   }
+
+  // Calculate initials if avatar is not present
+  const initials = (profile?.name || "User")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2);
 
   return (
     <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-full border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-300">
@@ -274,6 +274,12 @@ export default function TopNavbar() {
       navigate("/tasks");
     } else if (item.type === "subject") {
       navigate("/subjects");
+    } else if (item.type === "session") {
+      navigate("/focus");
+    } else if (item.type === "schedule") {
+      navigate("/schedule");
+    } else if (item.type === "aiInsight") {
+      navigate("/analytics");
     }
 
     setIsOpen(false);
@@ -563,11 +569,7 @@ function ResultItem({ item, onSelect, Icon, query }) {
     >
       <Icon className="w-4 h-4 mr-3 text-gray-400" />
       <span className="flex-1 truncate">
-        {query ? (
-          <Highlight text={item.title} highlight={query} />
-        ) : (
-          item.title
-        )}
+        {query ? <Highlight text={item.title} highlight={query} /> : item.title}
       </span>
       {item.type && (
         <span

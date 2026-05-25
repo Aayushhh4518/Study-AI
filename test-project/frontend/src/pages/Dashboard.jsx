@@ -36,7 +36,7 @@ function AnimatedCounter({ value }) {
   return <span ref={nodeRef} />;
 }
 
-/* ── Data ─────────────────────────────────────────────── */
+/* ── Constants ────────────────────────────────────────── */
 
 const accentMap = {
   violet: {
@@ -71,6 +71,13 @@ const accentMap = {
   },
 };
 
+const insightIcons = {
+  motivational: TrendingUp,
+  warning: Zap,
+  recommendation: Sparkles,
+  insight: BrainCircuit,
+  info: BrainCircuit,
+};
 /* ── Animation variants — defined once outside component ── */
 const fadeUp = {
   hidden: { opacity: 0, y: 15 },
@@ -160,14 +167,6 @@ export default function Dashboard() {
     },
   ];
 
-  const insightIcons = {
-    motivational: TrendingUp,
-    warning: Zap,
-    recommendation: Sparkles,
-    insight: BrainCircuit,
-    info: BrainCircuit,
-  };
-
   const aiInsights = (contextAiInsights || []).slice(0, 3).map((insight) => ({
     ...insight,
     icon: insightIcons[insight.type] || Sparkles,
@@ -201,13 +200,7 @@ export default function Dashboard() {
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1
-            className="
-            text-3xl font-bold tracking-tight leading-none
-            bg-gradient-to-r from-white via-zinc-100 to-zinc-400
-            bg-clip-text text-transparent
-          "
-          >
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
             Overview
           </h1>
           <p className="text-zinc-500 mt-2 text-[13px] font-medium">
@@ -240,7 +233,7 @@ export default function Dashboard() {
         variants={staggerGrid}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 xl:grid-cols-4 gap-4"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -263,7 +256,7 @@ export default function Dashboard() {
                     <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 font-semibold">
                       {stat.title}
                     </p>
-                    <div
+                    <div // Icon container
                       className={`
                       h-8 w-8 rounded-lg flex items-center justify-center
                       bg-gradient-to-br ${stat.from} ${stat.to}
@@ -280,7 +273,7 @@ export default function Dashboard() {
                   </div>
 
                   {/* value */}
-                  <h2 className="text-3xl font-bold tracking-tight text-zinc-100 leading-none">
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100 leading-none">
                     <AnimatedCounter value={stat.value} />
                     {stat.suffix}
                   </h2>
@@ -302,9 +295,9 @@ export default function Dashboard() {
       </motion.div>
 
       {/* ── MAIN GRID ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* ── ANALYTICS PANEL ── */}
-        <PremiumCard className="xl:col-span-2 relative overflow-hidden p-6">
+        <PremiumCard className="lg:col-span-2 relative overflow-hidden p-4 sm:p-6">
           {/* ambient glow */}
           <div className="pointer-events-none absolute top-0 right-0 h-56 w-56 rounded-full bg-violet-500/[0.04] blur-[80px]" />
 
@@ -349,7 +342,7 @@ export default function Dashboard() {
             </div>
 
             {/* mini stats row */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
               {miniStats.map((m) => (
                 <div
                   key={m.label}
@@ -420,7 +413,7 @@ export default function Dashboard() {
         </PremiumCard>
 
         {/* ── AI ASSISTANT PANEL ── */}
-        <PremiumCard className="relative overflow-hidden p-6 flex flex-col">
+        <PremiumCard className="relative overflow-hidden p-4 sm:p-6 flex flex-col">
           <div className="pointer-events-none absolute bottom-0 right-0 h-40 w-40 rounded-full bg-cyan-500/[0.04] blur-[80px]" />
 
           {/* panel header */}

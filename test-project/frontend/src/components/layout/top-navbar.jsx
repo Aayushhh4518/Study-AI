@@ -23,6 +23,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  X,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -50,7 +51,7 @@ const Highlight = ({ text, highlight }) => {
         regex.test(part) ? (
           <span
             key={i}
-            className="text-violet-300 font-semibold bg-violet-500/20 rounded px-0.5"
+            className="text-violet-300 font-bold bg-violet-500/20 rounded px-1"
           >
             {part}
           </span>
@@ -64,14 +65,13 @@ const Highlight = ({ text, highlight }) => {
 
 // --- Utility: Avatar Component ---
 const Avatar = ({ profile }) => {
-  const initials =
-    profile.name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2) || "U";
+  const initials = (profile?.name || "User")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2);
 
-  if (profile.avatar) {
+  if (profile?.avatar) {
     return (
       <img
         src={profile.avatar}
@@ -89,27 +89,49 @@ const Avatar = ({ profile }) => {
 };
 
 // --- Helper: Result Item Component ---
-function ResultItem({ item, onSelect, Icon, query, isActive }) {
+function ResultItem({ item, onSelect, onHover, Icon, query, isActive }) {
   return (
     <div
       data-active={isActive}
       onClick={() => onSelect(item)}
-      className={`flex items-center px-3 py-2.5 mx-1 rounded-lg cursor-pointer transition-colors ${
+      onMouseEnter={onHover}
+      className={`flex items-center px-3 py-2.5 mx-2 mb-0.5 rounded-xl cursor-pointer transition-colors ${
         isActive
-          ? "bg-violet-500/10 text-violet-200 border border-violet-500/20"
-          : "text-zinc-300 border border-transparent hover:bg-white/[0.04]"
+          ? "bg-violet-500/20 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] ring-1 ring-violet-500/30"
+          : "text-zinc-300 hover:bg-white/[0.04]"
       }`}
     >
-      <Icon size={14} className={`mr-3 ${item.color || "text-zinc-500"}`} />
+      <div
+        className={`flex items-center justify-center h-7 w-7 rounded-lg mr-3 ${
+          isActive
+            ? "bg-violet-500/20 text-violet-300"
+            : "bg-white/[0.04] text-zinc-400"
+        }`}
+      >
+        <Icon size={14} className={item.color || ""} />
+      </div>
       <div className="flex-1 min-w-0">
-        <span className="truncate text-[13px] font-medium">
-          <Highlight text={item.title} highlight={query} />
+        <span className="truncate text-[13.5px] font-medium tracking-wide">
+          {query ? (
+            <Highlight text={item.title} highlight={query} />
+          ) : (
+            item.title
+          )}
         </span>
       </div>
+      {item.type && item.type !== "suggestion" && (
+        <span
+          className={`ml-3 text-[10px] font-bold uppercase tracking-wider ${
+            isActive ? "text-violet-300" : "text-zinc-500"
+          }`}
+        >
+          {item.type}
+        </span>
+      )}
       {isActive && (
         <CornerDownLeft
-          size={12}
-          className="ml-3 text-violet-500 flex-shrink-0"
+          size={14}
+          className="ml-4 text-violet-400 flex-shrink-0 opacity-80"
         />
       )}
     </div>
@@ -177,6 +199,7 @@ const iconMap = {
   session: Clock,
   schedule: CalendarDays,
   aiInsight: Sparkles,
+  suggestion: Sparkles,
 };
 
 const fadeUp = {
@@ -190,6 +213,10 @@ export default function TopNavbar() {
     data,
     aiInsights: contextAiInsights,
     unreadNotifications,
+    markNotificationsRead,
+    removeNotification,
+    clearNotifications,
+    readNotification,
   } = useData();
   const navigate = useNavigate();
 
@@ -205,12 +232,46 @@ export default function TopNavbar() {
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const saved = localStorage.getItem("studyai_recent_searches");
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       console.error("Failed to parse recent searches:", e);
       return [];
     }
   });
+
+  const recommendations = useMemo(
+    () => [
+      {
+        title: "Computer Science 101",
+        type: "suggestion",
+        id: "rec-1",
+        icon: Sparkles,
+      },
+      {
+        title: "Start Pomodoro",
+        type: "action",
+        path: "/focus",
+        id: "rec-2",
+        icon: Zap,
+      },
+      {
+        title: "Check Analytics",
+        type: "action",
+        path: "/analytics",
+        id: "rec-3",
+        icon: BarChart2,
+      },
+      {
+        title: "Theme Settings",
+        type: "action",
+        path: "/settings",
+        id: "rec-4",
+        icon: Settings,
+      },
+    ],
+    [],
+  );
 
   const searchRef = useRef(null);
   const inputRef = useRef(null);
@@ -222,8 +283,13 @@ export default function TopNavbar() {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setIsOpen(true);
-        setTimeout(() => inputRef.current?.focus(), 50);
+        setIsOpen((prev) => {
+          if (!prev) {
+            setTimeout(() => inputRef.current?.focus(), 50);
+            return true;
+          }
+          return false;
+        });
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -330,8 +396,19 @@ export default function TopNavbar() {
   }, [debouncedQuery, data, contextAiInsights]);
 
   const flattenedItems = useMemo(() => {
-    return filteredResults.flatMap((group) => group.items);
-  }, [filteredResults]);
+    if (!debouncedQuery) {
+      const recents = recentSearches.map((item) => ({
+        ...item,
+        _isRecent: true,
+        _key: `recent-${item.id}`,
+      }));
+      const recs = recommendations.map((rec) => ({ ...rec, _key: rec.id }));
+      return [...recents, ...recs];
+    }
+    return filteredResults.flatMap((group) =>
+      group.items.map((item) => ({ ...item, _key: item.id })),
+    );
+  }, [filteredResults, debouncedQuery, recentSearches, recommendations]);
 
   // Handle Keyboard Navigation
   const handleKeyDown = (e) => {
@@ -364,21 +441,29 @@ export default function TopNavbar() {
   useEffect(() => {
     if (isOpen && resultsRef.current) {
       const activeEl = resultsRef.current.querySelector('[data-active="true"]');
-      if (activeEl)
-        activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      if (activeEl) activeEl.scrollIntoView({ block: "nearest" });
     }
   }, [activeIndex, isOpen]);
 
   const handleSelect = (item) => {
+    if (!item) return;
+
+    if (item.type === "suggestion") {
+      setQuery(item.title);
+      inputRef.current?.focus();
+      return;
+    }
+
+    const safeRecents = Array.isArray(recentSearches) ? recentSearches : [];
+    const { _isRecent, _key, icon, ...itemToSave } = item;
     const newRecents = [
-      item,
-      ...recentSearches.filter((i) => i.id !== item.id),
+      itemToSave,
+      ...safeRecents.filter((i) =>
+        item.id && i.id ? i.id !== item.id : i.title !== item.title,
+      ),
     ].slice(0, 5);
     setRecentSearches(newRecents);
-    localStorage.setItem(
-      "studyai_recent_searches",
-      JSON.stringify(newRecents.map(({ icon, ...rest }) => rest)), // Don't store icon components
-    );
+    localStorage.setItem("studyai_recent_searches", JSON.stringify(newRecents));
 
     if (item.path) {
       navigate(item.path);
@@ -395,13 +480,6 @@ export default function TopNavbar() {
     setIsOpen(false);
     setQuery("");
   };
-
-  const recommendations = [
-    "Computer Science 101",
-    "Start Pomodoro",
-    "Check Analytics",
-    "Theme Settings",
-  ];
 
   const handleLogout = () => {
     // Placeholder for actual logout logic
@@ -456,19 +534,19 @@ export default function TopNavbar() {
       >
         <div
           className={`
-            group w-full h-[38px] rounded-xl
+            group w-full h-[42px] rounded-xl
             border flex items-center px-3 gap-3
             transition-all duration-200 shadow-sm
             ${
               isOpen
-                ? "border-violet-500/40 bg-violet-500/[0.02] ring-2 ring-violet-500/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                ? "border-violet-500/40 bg-[#0E1324] ring-4 ring-violet-500/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
                 : "border-white/[0.06] bg-[#0A0E1A] hover:border-white/[0.12] hover:bg-[#0E1324]"
             }
           `}
         >
           <Search
-            size={14}
-            className={`flex-shrink-0 transition-colors duration-200 ${isOpen ? "text-violet-400" : "text-zinc-500 group-hover:text-zinc-400"}`}
+            size={16}
+            className={`flex-shrink-0 transition-colors duration-200 ${isOpen ? "text-violet-400" : "text-zinc-500 group-hover:text-zinc-500"}`}
           />
           <input
             ref={inputRef}
@@ -481,9 +559,20 @@ export default function TopNavbar() {
             placeholder="Search tasks, subjects, insights..."
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent outline-none text-[13px] text-zinc-200 placeholder:text-zinc-500 min-w-0 font-medium"
+            className="flex-1 bg-transparent outline-none text-[14px] text-zinc-200 placeholder:text-zinc-500 min-w-0 font-medium"
           />
-          {!isOpen && (
+          {query && (
+            <button
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.05] transition-colors flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
+          )}
+          {!isOpen && !query && (
             <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] text-[10px] text-zinc-500 flex-shrink-0 font-medium tracking-widest">
               <Command size={10} />
               <span>K</span>
@@ -495,57 +584,68 @@ export default function TopNavbar() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              initial={{
+                opacity: 0,
+                y: -4,
+                scale: 0.99,
+                transformOrigin: "top",
+              }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 4, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-              className="absolute top-[calc(100%+8px)] left-2 lg:left-6 right-2 lg:right-6 z-50 bg-[#0B0F19]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+              exit={{ opacity: 0, y: -4, scale: 0.99 }}
+              transition={{ type: "spring", bounce: 0, duration: 0.25 }}
+              className="absolute top-[calc(100%+8px)] left-0 w-full z-50 bg-[#0A0E1A]/95 backdrop-blur-2xl border border-white/[0.08] rounded-2xl shadow-[0_24px_40px_rgba(0,0,0,0.6)] overflow-hidden"
             >
               <div
                 ref={resultsRef}
-                className="max-h-[60vh] overflow-y-auto overscroll-contain py-2"
+                className="max-h-[60vh] overflow-y-auto overscroll-contain py-3"
                 style={{ scrollbarWidth: "none" }}
               >
                 {/* State: Empty Query */}
                 {!query && (
                   <>
                     {recentSearches.length > 0 && (
-                      <div className="px-3 py-1">
-                        <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-2 px-2">
+                      <div className="px-2 py-1">
+                        <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1 mt-2 px-3">
                           Recent Searches
                         </div>
-                        {recentSearches.map((item) => (
-                          <ResultItem
-                            key={`recent-${item.id}`}
-                            item={item}
-                            onSelect={handleSelect}
-                            Icon={iconMap[item.type] || Clock}
-                            query={""}
-                            isActive={false}
-                          />
-                        ))}
+                        {recentSearches.map((item) => {
+                          const globalIndex = flattenedItems.findIndex(
+                            (i) => i._key === `recent-${item.id}`,
+                          );
+                          return (
+                            <ResultItem
+                              key={`recent-${item.id}`}
+                              item={item}
+                              onSelect={handleSelect}
+                              onHover={() => setActiveIndex(globalIndex)}
+                              Icon={iconMap[item.type] || Clock}
+                              query={""}
+                              isActive={globalIndex === activeIndex}
+                            />
+                          );
+                        })}
                       </div>
                     )}
-                    <div className="px-3 py-1 mt-2">
-                      <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-2 px-2">
+                    <div className="px-2 py-1 mt-1">
+                      <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-1 px-3">
                         Suggestions
                       </div>
-                      {recommendations.map((rec, idx) => (
-                        <div
-                          key={`rec-${idx}`}
-                          onClick={() => {
-                            setQuery(rec);
-                            inputRef.current?.focus();
-                          }}
-                          className="flex items-center px-3 py-2 text-[13px] text-zinc-300 hover:bg-white/[0.04] rounded-lg cursor-pointer transition-colors"
-                        >
-                          <Sparkles
-                            size={14}
-                            className="mr-3 text-violet-400"
+                      {recommendations.map((rec) => {
+                        const globalIndex = flattenedItems.findIndex(
+                          (i) => i._key === rec.id,
+                        );
+                        return (
+                          <ResultItem
+                            key={rec.id}
+                            item={rec}
+                            onSelect={handleSelect}
+                            onHover={() => setActiveIndex(globalIndex)}
+                            Icon={rec.icon || Sparkles}
+                            query={""}
+                            isActive={globalIndex === activeIndex}
                           />
-                          <span>{rec}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -574,7 +674,7 @@ export default function TopNavbar() {
                       </div>
                       {group.items.map((item) => {
                         const globalIndex = flattenedItems.findIndex(
-                          (i) => i.id === item.id,
+                          (i) => i._key === item.id,
                         );
                         const isActive = globalIndex === activeIndex;
                         const Icon = item.icon || CheckSquare;
@@ -583,6 +683,7 @@ export default function TopNavbar() {
                             key={item.id}
                             item={item}
                             onSelect={handleSelect}
+                            onHover={() => setActiveIndex(globalIndex)}
                             Icon={Icon}
                             query={debouncedQuery}
                             isActive={isActive}
@@ -681,42 +782,89 @@ export default function TopNavbar() {
                   overflow-hidden origin-top-right
                 "
               >
-                <div className="px-4 py-3 border-b border-white/[0.04]">
-                  <p className="text-[12px] font-bold text-white tracking-wide">
+                <div className="px-4 py-3 border-b border-white/[0.04] flex items-center justify-between">
+                  <p className="text-[12px] font-bold text-white tracking-wide flex items-center gap-2">
                     Notifications
-                  </p>
-                </div>
-                <div className="py-1">
-                  {(data.notifications || []).slice(0, 5).map((n) => (
-                    <div
-                      key={n.title}
-                      className="flex items-start gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors duration-150 cursor-pointer"
-                    >
-                      <div
-                        className={`mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full ${n.type === "success" ? "bg-emerald-400" : n.type === "warning" ? "bg-amber-400" : "bg-violet-400"} shadow-[0_0_8px_currentColor]`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-semibold text-zinc-100 truncate">
-                          {n.title}
-                        </p>
-                        <p className="text-[11px] text-zinc-500 truncate mt-0.5">
-                          {n.message}
-                        </p>
-                      </div>
-                      <span className="text-[10px] text-zinc-600 font-medium flex-shrink-0 mt-0.5">
-                        {new Date(n.time).toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                    {unreadNotifications > 0 && (
+                      <span className="bg-violet-500 text-white text-[9px] px-1.5 py-0.5 rounded-full leading-none">
+                        {unreadNotifications}
                       </span>
+                    )}
+                  </p>
+                  {data.notifications?.length > 0 && (
+                    <button
+                      onClick={() => markNotificationsRead()}
+                      className="text-[10px] font-semibold text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="py-1 max-h-[320px] overflow-y-auto custom-scrollbar">
+                  {!data.notifications || data.notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-zinc-500 text-[12px] font-medium">
+                      No new notifications
                     </div>
-                  ))}
+                  ) : (
+                    (data.notifications || []).map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          if (!n.read) readNotification(n.id);
+                        }}
+                        className={`group flex items-start gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors duration-150 cursor-pointer border-b border-white/[0.02] last:border-0 ${n.read ? "opacity-60" : "opacity-100"}`}
+                      >
+                        <div
+                          className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${
+                            n.type === "success"
+                              ? "bg-emerald-400"
+                              : n.type === "warning"
+                                ? "bg-amber-400"
+                                : n.type === "info"
+                                  ? "bg-blue-400"
+                                  : "bg-violet-400"
+                          } ${!n.read ? "shadow-[0_0_8px_currentColor]" : ""}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-semibold text-zinc-100 truncate">
+                            {n.title}
+                          </p>
+                          <p className="text-[11px] text-zinc-400 line-clamp-2 mt-0.5 leading-relaxed">
+                            {n.message}
+                          </p>
+                          <span className="text-[9px] text-zinc-600 font-medium block mt-1.5 uppercase tracking-wider">
+                            {new Date(n.time).toLocaleString([], {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeNotification(n.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-white transition-all p-1 rounded-md hover:bg-white/[0.05]"
+                          title="Remove notification"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <div className="px-4 py-2.5 border-t border-white/[0.04] bg-white/[0.01]">
-                  <button className="w-full text-[11px] text-violet-400 hover:text-violet-300 transition-colors duration-150 font-semibold tracking-wide">
-                    View all
-                  </button>
-                </div>
+                {data.notifications?.length > 0 && (
+                  <div className="px-4 py-2.5 border-t border-white/[0.04] bg-white/[0.01]">
+                    <button
+                      onClick={() => clearNotifications()}
+                      className="w-full text-[11px] text-zinc-500 hover:text-rose-400 transition-colors duration-150 font-semibold tracking-wide"
+                    >
+                      Clear all notifications
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
