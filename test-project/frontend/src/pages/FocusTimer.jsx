@@ -1,7 +1,8 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Brain,
   Coffee,
+  Lightbulb,
   Pause,
   Play,
   RotateCcw,
@@ -9,6 +10,7 @@ import {
   TimerReset,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -16,7 +18,13 @@ import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
 
 export default function FocusTimer() {
-  const { data, stats, recordFocusSession, updateSettings } = useData();
+  const {
+    data,
+    stats,
+    recordFocusSession,
+    updateSettings,
+    updateProductivitySettings,
+  } = useData();
   const {
     pomodoroWorkTime,
     pomodoroBreakTime,
@@ -27,6 +35,7 @@ export default function FocusTimer() {
   } = data.settings;
 
   const audioRef = useRef(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   const [focusState, setFocusState] = useState(() => {
     const saved = localStorage.getItem("studyai-focus-state");
@@ -453,6 +462,7 @@ export default function FocusTimer() {
             </p>
 
             <button
+              onClick={() => setIsOptimizing(true)}
               className="
                 mt-7
                 w-full
@@ -471,6 +481,182 @@ export default function FocusTimer() {
           </PremiumCard>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isOptimizing && (
+          <AIOptimizationModal
+            onClose={() => setIsOptimizing(false)}
+            stats={stats}
+            settings={data?.settings || {}}
+            updateProductivitySettings={updateProductivitySettings}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+}
+
+function AIOptimizationModal({
+  onClose,
+  stats,
+  settings,
+  updateProductivitySettings,
+}) {
+  const aiPlan = useMemo(() => {
+    const productivityScore = stats?.productivityScore || 0;
+    const streak = stats?.streak || 0;
+    const totalFocusHours = stats?.totalFocusHours || 0;
+    const pomodoroWorkTime = settings?.pomodoroWorkTime || 25;
+    const pomodoroBreakTime = settings?.pomodoroBreakTime || 5;
+    const aiStrictness = settings?.aiStrictness || "balanced";
+
+    let reason = "";
+    let newSettings = { pomodoroWorkTime, pomodoroBreakTime };
+
+    if (productivityScore < 65) {
+      if (aiStrictness === "strict") {
+        reason =
+          "Your efficiency score is low. AI is switching to shorter, more intense 20-minute cycles to rebuild momentum and provide quick wins.";
+        newSettings = { pomodoroWorkTime: 20, pomodoroBreakTime: 4 };
+      } else {
+        reason =
+          "To boost your productivity score, AI recommends returning to the classic, proven 25/5 Pomodoro technique to build a consistent rhythm.";
+        newSettings = { pomodoroWorkTime: 25, pomodoroBreakTime: 5 };
+      }
+    } else if (totalFocusHours > 25 && streak > 4) {
+      reason =
+        "You're demonstrating elite consistency, but burnout is a risk. AI is increasing break times to ensure your high performance is sustainable.";
+      newSettings = {
+        pomodoroWorkTime,
+        pomodoroBreakTime: Math.min(10, Math.round(pomodoroBreakTime * 1.4)),
+      };
+    } else if (productivityScore > 85) {
+      reason =
+        "You're in a peak performance state. To leverage this flow, AI suggests extending focus sessions for deeper work and greater output.";
+      newSettings = { pomodoroWorkTime: 45, pomodoroBreakTime: 10 };
+    } else {
+      reason =
+        "Your current rhythm is effective. AI suggests maintaining your current settings to reinforce this positive habit.";
+      newSettings = { pomodoroWorkTime, pomodoroBreakTime };
+    }
+
+    return { reason, newSettings };
+  }, [stats, settings]);
+
+  const handleApply = () => {
+    updateProductivitySettings?.(aiPlan.newSettings);
+    onClose?.();
+  };
+
+  const PlanCard = ({ title, work, breakTime, isRecommended }) => (
+    <div
+      className={`p-6 rounded-2xl border ${isRecommended ? "bg-violet-500/10 border-violet-500/20" : "bg-white/[0.03] border-white/10"}`}
+    >
+      <h4
+        className={`text-sm font-bold uppercase tracking-wider ${isRecommended ? "text-violet-300" : "text-zinc-400"}`}
+      >
+        {title}
+      </h4>
+      <div className="flex items-baseline gap-4 mt-3">
+        <div>
+          <div className="text-4xl font-bold text-white">{work}</div>
+          <div className="text-xs text-zinc-500 font-medium mt-1">
+            Focus (min)
+          </div>
+        </div>
+        <div>
+          <div className="text-4xl font-bold text-white">{breakTime}</div>
+          <div className="text-xs text-zinc-500 font-medium mt-1">
+            Break (min)
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-2xl bg-[#0A0E1A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-10"
+      >
+        <div className="px-8 py-6 border-b border-white/[0.06] flex items-center justify-between bg-white/[0.01]">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.3)] border border-white/10">
+              <Sparkles size={22} className="text-white drop-shadow-md" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-wide">
+                AI Focus Plan
+              </h2>
+              <p className="text-sm text-zinc-400 font-medium mt-0.5">
+                Optimized Pomodoro settings based on your performance
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2.5 text-zinc-500 hover:text-white hover:bg-white/[0.08] rounded-xl transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-8 space-y-8">
+          <div className="p-5 rounded-2xl bg-amber-500/[0.05] border border-amber-500/10 flex gap-4">
+            <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
+              <Lightbulb className="text-amber-400" size={20} />
+            </div>
+            <div>
+              <div className="text-base font-bold text-white mb-1.5 tracking-wide">
+                AI Analysis
+              </div>
+              <div className="text-sm text-zinc-400 leading-relaxed">
+                {aiPlan.reason}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <PlanCard
+              title="Current Plan"
+              work={settings.pomodoroWorkTime}
+              breakTime={settings.pomodoroBreakTime}
+              isRecommended={false}
+            />
+            <PlanCard
+              title="AI Optimized Plan"
+              work={aiPlan.newSettings.pomodoroWorkTime}
+              breakTime={aiPlan.newSettings.pomodoroBreakTime}
+              isRecommended={true}
+            />
+          </div>
+        </div>
+
+        <div className="px-8 py-6 border-t border-white/[0.06] flex items-center justify-end gap-4 bg-white/[0.01]">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleApply}
+            className="px-6 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all"
+          >
+            Apply & Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }

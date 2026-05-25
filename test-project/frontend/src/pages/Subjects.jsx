@@ -1,5 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Edit, Plus, Trash2, X } from "lucide-react";
+import {
+  BookOpen,
+  Edit,
+  Plus,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useData } from "../store/DataContext";
 
@@ -10,12 +18,15 @@ const colorToGradientMap = {
   "bg-rose-500": "from-pink-500 to-rose-500",
   "bg-cyan-500": "from-cyan-500 to-blue-500",
   "bg-amber-500": "from-amber-500 to-orange-500",
+  "bg-violet-500": "from-purple-500 to-violet-500",
+  "bg-teal-500": "from-teal-500 to-cyan-500",
 };
 
 const availableColors = Object.keys(colorToGradientMap);
 
 export default function Subjects() {
-  const { data, addSubject, deleteSubject, updateSubject } = useData();
+  const { addSubject, deleteSubject, updateSubject, subjectAnalytics } =
+    useData();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add"); // 'add' or 'edit'
@@ -27,20 +38,60 @@ export default function Subjects() {
 
   // Calculate study hours per subject from focus history
   const enrichedSubjects = useMemo(() => {
-    return (data.subjects || []).map((subject) => {
-      const totalMinutes = (data.focus?.history || [])
-        .filter((session) => session.subjectId === subject.id)
-        .reduce((acc, session) => acc + (session.durationMinutes || 0), 0);
-      const hours = (totalMinutes / 60).toFixed(1);
+    return (subjectAnalytics || []).map((subject) => {
       return {
         ...subject,
-        hours: `${hours}h studied`,
+        hours: `${subject.totalFocusHours}h studied`,
+        progress: subject.completionRate,
         gradient:
           colorToGradientMap[subject.color] ||
           colorToGradientMap[availableColors[0]],
       };
     });
-  }, [data.subjects, data.focus?.history]);
+  }, [subjectAnalytics]);
+
+  const aiSubjectInsights = useMemo(() => {
+    if (!enrichedSubjects || enrichedSubjects.length < 2) return [];
+
+    const insights = [];
+    const sortedByProgress = [...enrichedSubjects].sort(
+      (a, b) => b.progress - a.progress,
+    );
+
+    const strongest = sortedByProgress[0];
+    if (strongest && strongest.progress > 70) {
+      insights.push({
+        icon: TrendingUp,
+        color: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        title: `Strongest Subject: ${strongest.title}`,
+        desc: `You're excelling with a ${strongest.progress}% completion rate. Keep up the great work!`,
+      });
+    }
+
+    const weakest = sortedByProgress[sortedByProgress.length - 1];
+    if (weakest && weakest.progress < 40 && weakest.id !== strongest.id) {
+      insights.push({
+        icon: TrendingDown,
+        color: "text-rose-400",
+        bg: "bg-rose-500/10",
+        title: `Attention Needed: ${weakest.title}`,
+        desc: `Progress is at ${weakest.progress}%. AI recommends scheduling more focus sessions for this subject.`,
+      });
+    }
+
+    return insights.slice(0, 2);
+  }, [enrichedSubjects]);
+
+  const handleDeleteSubject = (subjectId, subjectTitle) => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${subjectTitle}"? This action cannot be undone.`,
+      )
+    ) {
+      deleteSubject(subjectId);
+    }
+  };
 
   const handleOpenAddModal = () => {
     setModalMode("add");
@@ -101,6 +152,38 @@ export default function Subjects() {
           New Subject
         </button>
       </div>
+
+      {/* AI INSIGHTS */}
+      {aiSubjectInsights.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {aiSubjectInsights.map((insight) => {
+            const Icon = insight.icon;
+            return (
+              <motion.div
+                key={insight.title}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className={`p-4 flex items-start gap-4 ${insight.bg} rounded-2xl border border-white/5`}
+              >
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border ${insight.color.replace("text", "border")}`}
+                >
+                  <Icon className={insight.color} size={20} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-[15px]">
+                    {insight.title}
+                  </h4>
+                  <p className="text-zinc-400 text-sm mt-1 leading-relaxed">
+                    {insight.desc}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
       {/* SUBJECT GRID */}
       {enrichedSubjects.length === 0 ? (
@@ -215,7 +298,7 @@ export default function Subjects() {
                   <Edit size={14} />
                 </button>
                 <button
-                  onClick={() => deleteSubject(subject.id)}
+                  onClick={() => handleDeleteSubject(subject.id, subject.title)}
                   className="h-8 w-8 rounded-lg flex items-center justify-center bg-red-500/[0.08] hover:bg-red-500/20 text-red-400 transition-all"
                 >
                   <Trash2 size={14} />

@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BookOpen,
+  BrainCircuit,
   Calendar,
   Check,
   CheckCircle2,
@@ -12,46 +14,60 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
 
 export default function Tasks() {
-  const { data, addTask, toggleTask, deleteTask, stats } = useData();
+  const { data, addTask, toggleTask, deleteTask, editTask, stats } = useData();
   const tasks = data?.tasks || [];
+  const subjects = data?.subjects || [];
 
   /* ── STATE ─────────────────────────────────────────────── */
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalState, setModalState] = useState(null); // { mode: 'add' | 'edit', task: Task | null }
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All"); // All, Active, Completed
 
-  const [newTask, setNewTask] = useState({
-    title: "",
-    due: "",
-    priority: "Medium",
-  });
-
   /* ── HANDLERS ──────────────────────────────────────────── */
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!newTask.title.trim()) return;
+  const handleOpenAddModal = () => {
+    setModalState({ mode: "add", task: null });
+  };
 
+  const handleOpenEditModal = (task) => {
+    setModalState({ mode: "edit", task });
+  };
+
+  const handleCloseModal = () => {
+    setModalState(null);
+  };
+
+  const handleSubmit = (formData) => {
     const colors = {
       High: "bg-rose-500",
       Medium: "bg-amber-500",
       Low: "bg-emerald-500",
       None: "bg-zinc-500",
     };
+    const taskData = {
+      title: formData.title.trim(),
+      due: formData.due || "No Due Date",
+      priority: formData.priority,
+      subject: formData.subject,
+      color: colors[formData.priority] || colors.None,
+    };
 
-    addTask({
-      title: newTask.title.trim(),
-      due: newTask.due || "No Due Date",
-      priority: newTask.priority,
-      color: colors[newTask.priority] || colors.None,
-    });
+    if (modalState.mode === "edit") {
+      editTask(modalState.task.id, taskData);
+    } else {
+      addTask(taskData);
+    }
+    handleCloseModal();
+  };
 
-    setNewTask({ title: "", due: "", priority: "Medium" });
-    setIsModalOpen(false);
+  const handleDelete = (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      deleteTask(taskId);
+    }
   };
 
   /* ── FILTERING (Optimized) ─────────────────────────────── */
@@ -69,6 +85,47 @@ export default function Tasks() {
       return matchSearch && matchStatus;
     });
   }, [tasks, searchQuery, statusFilter]);
+
+  /* ── AI INSIGHTS (Memoized) ────────────────────────────── */
+  const aiInsights = useMemo(() => {
+    const highPriority = tasks.filter(
+      (t) => !t.completed && t.priority === "High",
+    ).length;
+    const pending = stats.pendingTasks;
+    const insights = [];
+
+    if (highPriority > 0) {
+      insights.push({
+        icon: Flag,
+        color: "text-rose-400",
+        bg: "bg-rose-500/10",
+        title: `${highPriority} High-Priority Task${highPriority > 1 ? "s" : ""}`,
+        desc: "Focus on these first to make significant progress.",
+      });
+    }
+
+    if (pending > 10) {
+      insights.push({
+        icon: ListTodo,
+        color: "text-amber-400",
+        bg: "bg-amber-500/10",
+        title: "High Workload",
+        desc: "You have a lot of pending tasks. Prioritize and tackle them one by one.",
+      });
+    }
+
+    if (insights.length < 2) {
+      insights.push({
+        icon: BrainCircuit,
+        color: "text-violet-400",
+        bg: "bg-violet-500/10",
+        title: "AI Suggestion",
+        desc: "Group similar tasks together and complete them in a single focus session.",
+      });
+    }
+
+    return insights.slice(0, 2);
+  }, [tasks, stats.pendingTasks]);
 
   return (
     <motion.div
@@ -101,7 +158,7 @@ export default function Tasks() {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleOpenAddModal}
           className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 font-semibold text-white transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(99,102,241,0.35)] shadow-lg"
         >
           <Plus size={18} />
@@ -158,6 +215,33 @@ export default function Tasks() {
                 >
                   <Icon className={item.color} size={20} />
                 </div>
+              </div>
+            </PremiumCard>
+          );
+        })}
+      </div>
+
+      {/* AI INSIGHTS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {aiInsights.map((insight) => {
+          const Icon = insight.icon;
+          return (
+            <PremiumCard
+              key={insight.title}
+              className={`p-4 flex items-start gap-4 ${insight.bg} border-none`}
+            >
+              <div
+                className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border ${insight.color.replace("text", "border")}`}
+              >
+                <Icon className={insight.color} size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-[15px]">
+                  {insight.title}
+                </h4>
+                <p className="text-zinc-400 text-sm mt-1 leading-relaxed">
+                  {insight.desc}
+                </p>
               </div>
             </PremiumCard>
           );
@@ -284,6 +368,13 @@ export default function Tasks() {
                             </div>
                           )}
 
+                          {/* Subject */}
+                          {task.subject && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
+                              <BookOpen size={12} />
+                              {task.subject}
+                            </div>
+                          )}
                           {/* Due Date */}
                           {task.due && task.due !== "No Due Date" && (
                             <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
@@ -296,12 +387,20 @@ export default function Tasks() {
                     </div>
 
                     {/* DELETE */}
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={() => handleOpenEditModal(task)}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 hover:text-white transition-all"
+                      >
+                        <Zap size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(task.id)}
+                        className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </PremiumCard>
               </motion.div>
@@ -312,113 +411,167 @@ export default function Tasks() {
 
       {/* ── ADD TASK MODAL ── */}
       <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setIsModalOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-[#0A0E1A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-10"
-            >
-              <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
-                <h3 className="text-lg font-bold text-white tracking-wide">
-                  Create New Task
-                </h3>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-zinc-500 hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddTask} className="p-6 space-y-5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                    Task Title
-                  </label>
-                  <input
-                    autoFocus
-                    value={newTask.title}
-                    onChange={(e) =>
-                      setNewTask({ ...newTask, title: e.target.value })
-                    }
-                    placeholder="What needs to be done?"
-                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all shadow-inner"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Priority
-                    </label>
-                    <select
-                      value={newTask.priority}
-                      onChange={(e) =>
-                        setNewTask({ ...newTask, priority: e.target.value })
-                      }
-                      className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm font-medium text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="High" className="bg-[#0A0E1A]">
-                        High Priority
-                      </option>
-                      <option value="Medium" className="bg-[#0A0E1A]">
-                        Medium Priority
-                      </option>
-                      <option value="Low" className="bg-[#0A0E1A]">
-                        Low Priority
-                      </option>
-                      <option value="None" className="bg-[#0A0E1A]">
-                        No Priority
-                      </option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Due Date
-                    </label>
-                    <input
-                      type="text"
-                      value={newTask.due}
-                      onChange={(e) =>
-                        setNewTask({ ...newTask, due: e.target.value })
-                      }
-                      placeholder="e.g. Tomorrow, 5:00 PM"
-                      className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all shadow-inner"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-6 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!newTask.title.trim()}
-                    className="px-6 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Save Task
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
+        {modalState && (
+          <TaskModal
+            mode={modalState.mode}
+            task={modalState.task}
+            subjects={subjects}
+            onClose={handleCloseModal}
+            onSubmit={handleSubmit}
+          />
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+function TaskModal({ mode, task, subjects, onClose, onSubmit }) {
+  const [formData, setFormData] = useState({
+    title: "",
+    due: "",
+    priority: "Medium",
+    subject: "",
+  });
+
+  useEffect(() => {
+    if (mode === "edit" && task) {
+      setFormData({
+        title: task.title || "",
+        due: task.due === "No Due Date" ? "" : task.due || "",
+        priority: task.priority || "Medium",
+        subject: task.subject || "",
+      });
+    } else {
+      setFormData({
+        title: "",
+        due: "",
+        priority: "Medium",
+        subject: subjects.length > 0 ? subjects[0].title : "",
+      });
+    }
+  }, [mode, task, subjects]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.title.trim()) return;
+    onSubmit(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative w-full max-w-lg bg-[#0A0E1A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-10"
+      >
+        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+          <h3 className="text-lg font-bold text-white tracking-wide">
+            {mode === "add" ? "Create New Task" : "Edit Task"}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-zinc-500 hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+              Task Title
+            </label>
+            <input
+              autoFocus
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="What needs to be done?"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all shadow-inner"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Priority
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) =>
+                  setFormData({ ...formData, priority: e.target.value })
+                }
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm font-medium text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="High">High Priority</option>
+                <option value="Medium">Medium Priority</option>
+                <option value="Low">Low Priority</option>
+                <option value="None">No Priority</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Due Date
+              </label>
+              <input
+                type="text"
+                value={formData.due}
+                onChange={(e) =>
+                  setFormData({ ...formData, due: e.target.value })
+                }
+                placeholder="e.g. Tomorrow, 5:00 PM"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all shadow-inner"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+              Subject
+            </label>
+            <select
+              value={formData.subject}
+              onChange={(e) =>
+                setFormData({ ...formData, subject: e.target.value })
+              }
+              className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm font-medium text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all appearance-none cursor-pointer"
+            >
+              <option value="">No Subject</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.title}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="pt-6 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!formData.title.trim()}
+              className="px-6 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {mode === "add" ? "Save Task" : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
   );
 }

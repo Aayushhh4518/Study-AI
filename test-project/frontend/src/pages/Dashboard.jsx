@@ -10,6 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import ProductivityChart from "../components/dashboard/productivity-chart";
 import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
@@ -22,7 +23,7 @@ function AnimatedCounter({ value }) {
   useEffect(() => {
     const node = nodeRef.current;
     if (!node) return;
-    const controls = animate(0, value, {
+    const controls = animate(0, value || 0, {
       duration: 1.2,
       ease: [0.2, 0.8, 0.2, 1], // Premium spring-like ease
       onUpdate(v) {
@@ -88,15 +89,26 @@ export default function Dashboard() {
     stats: contextStats,
     aiInsights: contextAiInsights,
     weeklyTrend,
+    weeklyChartData,
     data,
   } = useData();
+  const navigate = useNavigate();
+
+  const weeklyGrowth = useMemo(() => {
+    if (!weeklyTrend || weeklyTrend.length < 2) return "+0%";
+    const last = weeklyTrend[weeklyTrend.length - 1]?.score || 0;
+    const secondLast = weeklyTrend[weeklyTrend.length - 2]?.score || 0;
+    if (secondLast === 0) return last > 0 ? "+100%" : "+0%";
+    const diff = ((last - secondLast) / secondLast) * 100;
+    return `${diff >= 0 ? "+" : ""}${Math.round(diff)}%`;
+  }, [weeklyTrend]);
 
   const stats = [
     {
       title: "Study Hours",
-      value: contextStats.totalFocusHours,
+      value: contextStats?.totalFocusHours || 0,
       suffix: "h",
-      delta: "+12%",
+      delta: weeklyGrowth,
       deltaLabel: "vs last week",
       icon: Clock3,
       from: "from-violet-500",
@@ -104,9 +116,9 @@ export default function Dashboard() {
     },
     {
       title: "Tasks Done",
-      value: contextStats.completedTasks,
+      value: contextStats?.completedTasks || 0,
       suffix: "",
-      delta: `${contextStats.pendingTasks} left`,
+      delta: `${contextStats?.pendingTasks || 0} left`,
       deltaLabel: "remaining",
       icon: CheckCircle2,
       from: "from-cyan-500",
@@ -114,9 +126,9 @@ export default function Dashboard() {
     },
     {
       title: "Subjects",
-      value: contextStats.totalSubjects,
+      value: contextStats?.totalSubjects || 0,
       suffix: "",
-      delta: `${contextStats.activeSubjects} active`,
+      delta: `${contextStats?.activeSubjects || 0} active`,
       deltaLabel: "in progress",
       icon: BookOpen,
       from: "from-pink-500",
@@ -124,9 +136,9 @@ export default function Dashboard() {
     },
     {
       title: "Focus Sessions",
-      value: contextStats.focusSessions,
+      value: contextStats?.focusSessions || 0,
       suffix: "",
-      delta: `Streak: ${contextStats.streak}d`,
+      delta: `Streak: ${contextStats?.streak || 0}d`,
       deltaLabel: "consistency",
       icon: BrainCircuit,
       from: "from-emerald-500",
@@ -134,25 +146,16 @@ export default function Dashboard() {
     },
   ];
 
-  const weeklyGrowth = useMemo(() => {
-    if (!weeklyTrend || weeklyTrend.length < 2) return "+0%";
-    const last = weeklyTrend[weeklyTrend.length - 1].score;
-    const secondLast = weeklyTrend[weeklyTrend.length - 2].score;
-    if (secondLast === 0) return last > 0 ? "+100%" : "+0%";
-    const diff = ((last - secondLast) / secondLast) * 100;
-    return `${diff >= 0 ? "+" : ""}${Math.round(diff)}%`;
-  }, [weeklyTrend]);
-
   const miniStats = [
     {
       label: "Focus Score",
-      value: `${contextStats.productivityScore}%`,
-      sub: contextStats.productivityScore > 80 ? "Excellent" : "Good",
+      value: `${contextStats?.productivityScore || 0}%`,
+      sub: (contextStats?.productivityScore || 0) > 80 ? "Excellent" : "Good",
     },
     { label: "Weekly Growth", value: weeklyGrowth, sub: "Trending up" },
     {
       label: "Streak",
-      value: `${contextStats.streak} days`,
+      value: `${contextStats?.streak || 0} days`,
       sub: "Keep going",
     },
   ];
@@ -165,10 +168,27 @@ export default function Dashboard() {
     info: BrainCircuit,
   };
 
-  const aiInsights = contextAiInsights.slice(0, 3).map((insight) => ({
+  const aiInsights = (contextAiInsights || []).slice(0, 3).map((insight) => ({
     ...insight,
     icon: insightIcons[insight.type] || Sparkles,
   }));
+
+  const peakFocusDay = useMemo(() => {
+    if (!weeklyChartData || !weeklyChartData.length) return "N/A";
+    const max = [...weeklyChartData].sort(
+      (a, b) => (b.focus || 0) - (a.focus || 0),
+    )[0];
+    return max && max.focus > 0 ? max.day : "N/A";
+  }, [weeklyChartData]);
+
+  const aiSuggestion = useMemo(() => {
+    if (!contextAiInsights || !contextAiInsights.length)
+      return "Keep up the good work!";
+    const rec = contextAiInsights.find(
+      (i) => i.type === "recommendation" || i.type === "insight",
+    );
+    return rec ? rec.title : "Maintain your focus rhythm";
+  }, [contextAiInsights]);
 
   return (
     <motion.div
@@ -205,13 +225,13 @@ export default function Dashboard() {
           shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] self-start sm:self-auto
         "
         >
-          {data.settings.aiInsightsEnabled ? (
+          {data?.settings?.aiInsightsEnabled ? (
             <div className="relative flex h-1.5 w-1.5 mr-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-500"></span>
             </div>
           ) : null}
-          {data.settings.aiInsightsEnabled ? "System Active" : "AI Disabled"}
+          {data?.settings?.aiInsightsEnabled ? "System Active" : "AI Disabled"}
         </div>
       </div>
 
@@ -367,8 +387,8 @@ export default function Dashboard() {
             {/* bottom insight row */}
             <div className="grid grid-cols-2 gap-3 mt-4">
               {[
-                { label: "Peak Productivity", value: "Thursday Evening" },
-                { label: "AI Suggestion", value: "Add 2 more focus sessions" },
+                { label: "Peak Productivity Day", value: peakFocusDay },
+                { label: "AI Suggestion", value: aiSuggestion },
               ].map((item) => (
                 <div
                   key={item.label}
@@ -486,6 +506,7 @@ export default function Dashboard() {
 
           {/* CTA */}
           <button
+            onClick={() => navigate("/analytics")}
             className="
             mt-5 w-full rounded-xl
             bg-white/[0.03] border border-white/[0.08]
