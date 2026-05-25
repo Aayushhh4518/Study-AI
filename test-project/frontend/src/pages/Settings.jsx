@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-
 import {
   Bell,
   BrainCircuit,
   Clock3,
+  Loader2,
   MoonStar,
   Shield,
   Sparkles,
@@ -11,12 +11,11 @@ import {
   User,
   X,
 } from "lucide-react";
-
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
 
-/* ── UI Components ─────────────────────────────────────── */
+/* ── UI Components & Constants ─────────────────────────────────── */
 function Toggle({ checked, onChange }) {
   return (
     <button
@@ -80,6 +79,9 @@ export default function Settings() {
   const theme = data.settings.theme;
 
   const [activeModal, setActiveModal] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+
   const [localSettings, setLocalSettings] = useState(data.settings);
   const [localProfile, setLocalProfile] = useState(data.profile);
 
@@ -88,6 +90,7 @@ export default function Settings() {
     if (activeModal) {
       setLocalSettings(data.settings);
       setLocalProfile(data.profile);
+      setErrors({}); // Clear errors when modal opens
     }
   }, [activeModal, data.settings, data.profile]);
 
@@ -96,14 +99,45 @@ export default function Settings() {
     updateSettings({ theme: newTheme });
   };
 
-  const handleSave = (e) => {
+  const validateProfile = useCallback(() => {
+    const newErrors = {};
+    if (!localProfile.name?.trim()) {
+      newErrors.name = "Name cannot be empty.";
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(localProfile.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [localProfile]);
+
+  const handleSave = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
+
+    // Simulate network delay for better UX
+    await new Promise((resolve) => setTimeout(resolve, 750));
+
     if (activeModal === "profile") {
+      if (!validateProfile()) {
+        setIsSaving(false);
+        return;
+      }
       updateProfile(localProfile);
     } else {
       updateSettings(localSettings);
     }
+
+    setIsSaving(false);
     setActiveModal(null);
+  };
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setLocalProfile((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
   };
 
   const renderModalContent = () => {
@@ -116,47 +150,41 @@ export default function Settings() {
                 Display Name
               </label>
               <input
+                name="name"
                 value={localProfile.name || ""}
-                onChange={(e) =>
-                  setLocalProfile({
-                    ...localProfile,
-                    name: e.target.value,
-                  })
-                }
+                onChange={handleProfileChange}
                 placeholder="Enter your name"
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
+                className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:ring-1 transition-all ${errors.name ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-violet-500"}`}
               />
+              {errors.name && (
+                <p className="text-rose-500 text-xs mt-1.5">{errors.name}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
                 Email Address
               </label>
               <input
+                name="email"
                 type="email"
                 value={localProfile.email || ""}
-                onChange={(e) =>
-                  setLocalProfile({
-                    ...localProfile,
-                    email: e.target.value,
-                  })
-                }
+                onChange={handleProfileChange}
                 placeholder="your.email@example.com"
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
+                className={`w-full bg-white/[0.03] border rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:ring-1 transition-all ${errors.email ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-violet-500"}`}
               />
+              {errors.email && (
+                <p className="text-rose-500 text-xs mt-1.5">{errors.email}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
                 Avatar URL
               </label>
               <input
+                name="avatar"
                 type="url"
                 value={localProfile.avatar || ""}
-                onChange={(e) =>
-                  setLocalProfile({
-                    ...localProfile,
-                    avatar: e.target.value,
-                  })
-                }
+                onChange={handleProfileChange}
                 placeholder="https://example.com/avatar.png"
                 className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
               />
@@ -648,7 +676,7 @@ export default function Settings() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setActiveModal(null)}
+              onClick={() => !isSaving && setActiveModal(null)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -661,8 +689,9 @@ export default function Settings() {
                   {modalTitles[activeModal]}
                 </h3>
                 <button
-                  onClick={() => setActiveModal(null)}
-                  className="text-zinc-500 hover:text-white transition-colors"
+                  onClick={() => !isSaving && setActiveModal(null)}
+                  className="text-zinc-500 hover:text-white transition-colors disabled:opacity-50"
+                  disabled={isSaving}
                 >
                   <X size={20} />
                 </button>
@@ -675,15 +704,24 @@ export default function Settings() {
                   <button
                     type="button"
                     onClick={() => setActiveModal(null)}
-                    className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                    disabled={isSaving}
+                    className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all"
+                    disabled={isSaving}
+                    className="px-6 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all flex items-center justify-center gap-2 w-32 disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    Save Changes
+                    {isSaving ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
                   </button>
                 </div>
               </form>

@@ -241,6 +241,14 @@ export default function TopNavbar() {
     "Theme Settings",
   ];
 
+  const profile = data?.profile || {};
+  const initials = profile.name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase() || "U";
+
   return (
     <header
       className="
@@ -577,7 +585,7 @@ export default function TopNavbar() {
             className="
               h-[34px] w-[34px] rounded-lg
               bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500
-              flex items-center justify-center
+          flex items-center justify-center overflow-hidden
               text-[12px] font-black text-white
               shadow-[0_0_12px_rgba(99,102,241,0.4)]
               ring-1 ring-white/20
@@ -585,14 +593,18 @@ export default function TopNavbar() {
               transition-all duration-200
             "
           >
-            <span className="drop-shadow-md">A</span>
+        {profile.avatar ? (
+          <img src={profile.avatar} alt={profile.name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="drop-shadow-md">{initials}</span>
+        )}
           </div>
           <div className="hidden lg:block text-left">
             <p className="text-[12px] font-bold text-zinc-100 leading-none">
-              Alex User
+          {profile.name || "User"}
             </p>
             <p className="text-[10px] text-zinc-500 mt-1 font-medium">
-              StudyAI Pro
+          StudyAI {profile.plan || "Pro"}
             </p>
           </div>
         </button>

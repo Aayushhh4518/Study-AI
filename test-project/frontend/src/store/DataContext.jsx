@@ -750,13 +750,13 @@ function sel_subjectAnalytics(subjects, focus) {
   });
 }
 
-function sel_searchResults(state) {
-  const q = state.searchQuery.toLowerCase().trim();
+function sel_searchResults(searchQuery, tasks, subjects, schedule) {
+  const q = searchQuery.toLowerCase().trim();
   if (!q) return { tasks: [], subjects: [], schedule: [] };
   return {
-    tasks: state.tasks.filter((t) => t.title.toLowerCase().includes(q)),
-    subjects: state.subjects.filter((s) => s.title.toLowerCase().includes(q)),
-    schedule: state.schedule.filter((s) => s.subject.toLowerCase().includes(q)),
+    tasks: tasks.filter((t) => t.title.toLowerCase().includes(q)),
+    subjects: subjects.filter((s) => s.title.toLowerCase().includes(q)),
+    schedule: schedule.filter((s) => s.subject.toLowerCase().includes(q)),
   };
 }
 
@@ -985,7 +985,13 @@ export function DataProvider({ children }) {
     [state.subjects, state.focus],
   );
   const searchResults = useMemo(
-    () => sel_searchResults(state),
+    () =>
+      sel_searchResults(
+        state.searchQuery,
+        state.tasks,
+        state.subjects,
+        state.schedule,
+      ),
     [state.searchQuery, state.tasks, state.subjects, state.schedule],
   );
   const aiInsights = useMemo(
@@ -1123,6 +1129,28 @@ export function DataProvider({ children }) {
     toast.success("Profile updated.");
   }, []);
 
+  const updateNotifications = useCallback((n) => {
+    dispatch({ type: A.SETTINGS_UPDATE, payload: n });
+    toast.success("Notification preferences updated.");
+  }, []);
+
+  const updateAISettings = useCallback((ai) => {
+    dispatch({ type: A.SETTINGS_UPDATE, payload: ai });
+    toast.success("AI preferences updated.");
+  }, []);
+
+  const updateProductivitySettings = useCallback((p) => {
+    dispatch({ type: A.SETTINGS_UPDATE, payload: p });
+    toast.success("Productivity settings updated.");
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    dispatch({
+      type: A.SETTINGS_UPDATE,
+      payload: { theme: state.settings.theme === "dark" ? "light" : "dark" },
+    });
+  }, [state.settings.theme]);
+
   /* Notifications */
   const addNotification = useCallback((n) => {
     dispatch({ type: A.NOTIFICATION_ADD, payload: n });
@@ -1205,6 +1233,10 @@ export function DataProvider({ children }) {
       /* Settings / Profile actions */
       updateSettings,
       updateProfile,
+      updateNotifications,
+      updateAISettings,
+      updateProductivitySettings,
+      toggleTheme,
 
       /* Notification actions */
       addNotification,
@@ -1256,6 +1288,10 @@ export function DataProvider({ children }) {
       updateScheduleSession,
       updateSettings,
       updateProfile,
+      updateNotifications,
+      updateAISettings,
+      updateProductivitySettings,
+      toggleTheme,
       addNotification,
       readNotification,
       markNotificationsRead,
