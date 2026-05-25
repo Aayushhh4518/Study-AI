@@ -4,6 +4,8 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 
+import authRoutes from "./routes/authRoutes.js";
+
 const app = express();
 
 // Middlewares
@@ -12,6 +14,9 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(cookieParser());
+
+// Routes
+app.use("/api/auth", authRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

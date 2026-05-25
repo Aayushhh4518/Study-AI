@@ -1,26 +1,56 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please add a name'],
+      required: true,
+      trim: true,
     },
+
     email: {
       type: String,
-      required: [true, 'Please add an email'],
+      required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
     },
+
     password: {
       type: String,
-      required: [true, 'Please add a password'],
+      required: true,
+      minlength: 6,
     },
-    preferences: {
-      workDuration: { type: Number, default: 25 },
-      breakDuration: { type: Number, default: 5 },
-      theme: { type: String, default: 'dark' },
-    }
+
+    avatar: {
+      type: String,
+      default: "",
+    },
+
+    theme: {
+      type: String,
+      enum: ["light", "dark"],
+      default: "dark",
+    },
+
+    aiPreferences: {
+      strictness: {
+        type: String,
+        enum: ["Relaxed", "Balanced", "Strict"],
+        default: "Balanced",
+      },
+
+      aiInsights: {
+        type: Boolean,
+        default: true,
+      },
+
+      smartRecommendations: {
+        type: Boolean,
+        default: true,
+      },
+    },
   },
   {
     timestamps: true,
@@ -28,18 +58,21 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
     next();
   }
 
   const salt = await bcrypt.genSalt(10);
+
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Match user entered password to hashed password in database
+// Compare password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
+
+export default User;

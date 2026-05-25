@@ -1,11 +1,20 @@
-const express = require('express');
+import express from "express";
+
+import {
+  getUserProfile,
+  loginUser,
+  registerUser,
+} from "../controllers/authController.js";
+
+import protect from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-const { registerUser, loginUser, getMe } = require('../controllers/authController');
-const { protect } = require('../middlewares/authMiddleware');
+// Public Routes
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.get('/me', protect, getMe);
+// Private Route
+router.get("/profile", protect, getUserProfile);
 
-module.exports = router;
+export default router;
