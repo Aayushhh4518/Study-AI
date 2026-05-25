@@ -1,27 +1,32 @@
 /*
   TopNavbar — Premium AI SaaS Edition
   Changes:
-  - Upgraded to a Linear/Cursor inspired glassmorphism aesthetic
-  - Reintroduced lightweight Framer Motion for the notification dropdown for a premium spring feel
-  - Enhanced the search bar to look like a modern command palette trigger
-  - Refined the AI Mode button with subtle glows and inset borders
-  - Improved typography, spacing, and micro-interactions
-  - Optimized active states and hover effects
+  - Implemented a real global search engine (command palette)
+  - Searches across actions, tasks, subjects, schedule, AI insights, and history
+  - Added keyboard navigation, debouncing, and recent searches
+  - Implemented a dynamic profile dropdown connected to global state
+  - Replaced all static data with live data from DataContext
 */
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BarChart2,
   Bell,
   BookOpen,
-  Brain,
+  CalendarDays,
   CheckSquare,
   Clock,
   Command,
   CornerDownLeft,
+  LayoutDashboard,
+  ListTodo,
+  LogOut,
   Search,
+  Settings,
   Sparkles,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useData } from "../../store/DataContext";
 
 // --- Utility: Custom Hook for Debouncing ---
@@ -36,7 +41,7 @@ function useDebounce(value, delay) {
 
 // --- Utility: Text Highlighter ---
 const Highlight = ({ text, highlight }) => {
-  if (!highlight?.trim()) return <span>{text}</span>;
+  if (!highlight?.trim() || !text) return <span>{text}</span>;
   const regex = new RegExp(`(${highlight})`, "gi");
   const parts = text.split(regex);
   return (
@@ -45,7 +50,7 @@ const Highlight = ({ text, highlight }) => {
         regex.test(part) ? (
           <span
             key={i}
-            className="text-violet-400 font-semibold bg-violet-500/20 rounded px-0.5"
+            className="text-violet-300 font-semibold bg-violet-500/20 rounded px-0.5"
           >
             {part}
           </span>
@@ -57,32 +62,137 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
-const STREAK_DAYS = 7;
+// --- Utility: Avatar Component ---
+const Avatar = ({ profile }) => {
+  const initials =
+    profile.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2) || "U";
 
-const notifications = [
+  if (profile.avatar) {
+    return (
+      <img
+        src={profile.avatar}
+        alt={profile.name}
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-full border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-300">
+      {initials.toUpperCase()}
+    </div>
+  );
+};
+
+// --- Helper: Result Item Component ---
+function ResultItem({ item, onSelect, Icon, query, isActive }) {
+  return (
+    <div
+      data-active={isActive}
+      onClick={() => onSelect(item)}
+      className={`flex items-center px-3 py-2.5 mx-1 rounded-lg cursor-pointer transition-colors ${
+        isActive
+          ? "bg-violet-500/10 text-violet-200 border border-violet-500/20"
+          : "text-zinc-300 border border-transparent hover:bg-white/[0.04]"
+      }`}
+    >
+      <Icon size={14} className={`mr-3 ${item.color || "text-zinc-500"}`} />
+      <div className="flex-1 min-w-0">
+        <span className="truncate text-[13px] font-medium">
+          <Highlight text={item.title} highlight={query} />
+        </span>
+      </div>
+      {isActive && (
+        <CornerDownLeft
+          size={12}
+          className="ml-3 text-violet-500 flex-shrink-0"
+        />
+      )}
+    </div>
+  );
+}
+
+// Static actions for command palette
+const staticActions = [
   {
-    title: "Focus session complete",
-    sub: "25 min deep work done",
-    time: "2m ago",
-    dot: "bg-emerald-400",
+    id: "action-dashboard",
+    title: "Go to Dashboard",
+    type: "action",
+    path: "/dashboard",
+    icon: LayoutDashboard,
   },
   {
-    title: "AI insight ready",
-    sub: "New productivity report",
-    time: "1h ago",
-    dot: "bg-violet-400",
+    id: "action-tasks",
+    title: "Go to Tasks",
+    type: "action",
+    path: "/tasks",
+    icon: ListTodo,
   },
   {
-    title: "Task deadline soon",
-    sub: "DSA Revision due today",
-    time: "3h ago",
-    dot: "bg-amber-400",
+    id: "action-analytics",
+    title: "Go to Analytics",
+    type: "action",
+    path: "/analytics",
+    icon: BarChart2,
+  },
+  {
+    id: "action-settings",
+    title: "Go to Settings",
+    type: "action",
+    path: "/settings",
+    icon: Settings,
+  },
+  {
+    id: "action-focus",
+    title: "Start Focus Session",
+    type: "action",
+    path: "/focus",
+    icon: Zap,
+  },
+  {
+    id: "action-schedule",
+    title: "View Schedule",
+    type: "action",
+    path: "/schedule",
+    icon: CalendarDays,
+  },
+  {
+    id: "action-subjects",
+    title: "View Subjects",
+    type: "action",
+    path: "/subjects",
+    icon: BookOpen,
   },
 ];
 
+// Icon map for recent searches and dynamic results
+const iconMap = {
+  action: Zap,
+  task: CheckSquare,
+  subject: BookOpen,
+  session: Clock,
+  schedule: CalendarDays,
+  aiInsight: Sparkles,
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: -10, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -10, scale: 0.98 },
+};
+
 export default function TopNavbar() {
-  const { data } = useData();
-  const [hasNotif, setHasNotif] = useState(true);
+  const {
+    data,
+    aiInsights: contextAiInsights,
+    unreadNotifications,
+  } = useData();
+  const navigate = useNavigate();
+
   const [notifOpen, setNotifOpen] = useState(false);
 
   // Command Palette State
@@ -90,6 +200,8 @@ export default function TopNavbar() {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 150);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
   const [recentSearches, setRecentSearches] = useState(() => {
     try {
       const saved = localStorage.getItem("studyai_recent_searches");
@@ -103,8 +215,7 @@ export default function TopNavbar() {
   const searchRef = useRef(null);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
-
-  // recentSearches initialized from localStorage to avoid sync setState in effect
+  const profileRef = useRef(null);
 
   // Keyboard shortcut listener (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -125,6 +236,9 @@ export default function TopNavbar() {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setIsOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setIsProfileOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -132,10 +246,31 @@ export default function TopNavbar() {
 
   // Highly optimized filtering using Context API Data
   const filteredResults = useMemo(() => {
-    if (!debouncedQuery) return [];
     const lowerQuery = debouncedQuery.toLowerCase();
+    if (!lowerQuery) return [];
+
+    const actionResults = staticActions.filter((a) =>
+      a.title.toLowerCase().includes(lowerQuery),
+    );
+
+    const aiInsightResults = (contextAiInsights || [])
+      .filter(
+        (insight) =>
+          insight.title.toLowerCase().includes(lowerQuery) ||
+          insight.desc.toLowerCase().includes(lowerQuery),
+      )
+      .map((insight) => ({
+        ...insight,
+        type: "aiInsight",
+        icon: Sparkles,
+        path: "/analytics",
+      }));
 
     return [
+      {
+        category: "Actions",
+        items: actionResults,
+      },
       {
         category: "Tasks",
         items: (data?.tasks || [])
@@ -143,8 +278,8 @@ export default function TopNavbar() {
           .map((t) => ({
             ...t,
             type: "task",
-            icon: CheckSquare,
-            color: "text-emerald-400",
+            icon: iconMap.task,
+            path: "/tasks",
           })),
       },
       {
@@ -154,13 +289,13 @@ export default function TopNavbar() {
           .map((s) => ({
             ...s,
             type: "subject",
-            icon: BookOpen,
-            color: "text-blue-400",
+            icon: iconMap.subject,
+            path: "/subjects",
           })),
       },
       {
         category: "Focus Sessions",
-        items: (data?.focusSessions?.history || [])
+        items: (data?.focus?.history || [])
           .filter(
             (s) =>
               (s.subjectId &&
@@ -174,12 +309,25 @@ export default function TopNavbar() {
             ...s,
             title: `Focus Session - ${new Date(s.date).toLocaleDateString()}`,
             type: "session",
-            icon: Brain,
-            color: "text-purple-400",
+            icon: iconMap.session,
+            path: "/focus",
           })),
       },
+      {
+        category: "Schedule",
+        items: (data?.schedule || [])
+          .filter((s) => s.subject.toLowerCase().includes(lowerQuery))
+          .map((s) => ({
+            ...s,
+            title: s.subject,
+            type: "schedule",
+            icon: iconMap.schedule,
+            path: "/schedule",
+          })),
+      },
+      { category: "AI Insights", items: aiInsightResults },
     ].filter((group) => group.items.length > 0);
-  }, [debouncedQuery, data]);
+  }, [debouncedQuery, data, contextAiInsights]);
 
   const flattenedItems = useMemo(() => {
     return filteredResults.flatMap((group) => group.items);
@@ -227,9 +375,23 @@ export default function TopNavbar() {
       ...recentSearches.filter((i) => i.id !== item.id),
     ].slice(0, 5);
     setRecentSearches(newRecents);
-    localStorage.setItem("studyai_recent_searches", JSON.stringify(newRecents));
+    localStorage.setItem(
+      "studyai_recent_searches",
+      JSON.stringify(newRecents.map(({ icon, ...rest }) => rest)), // Don't store icon components
+    );
 
-    console.log(`Navigating to ${item.type}:`, item.title);
+    if (item.path) {
+      navigate(item.path);
+    } else if (item.type === "task") {
+      navigate("/tasks");
+    } else if (item.type === "subject") {
+      navigate("/subjects");
+    } else if (item.type === "session") {
+      navigate("/focus");
+    } else if (item.type === "schedule") {
+      navigate("/schedule");
+    }
+
     setIsOpen(false);
     setQuery("");
   };
@@ -241,13 +403,19 @@ export default function TopNavbar() {
     "Theme Settings",
   ];
 
+  const handleLogout = () => {
+    // Placeholder for actual logout logic
+    navigate("/login");
+  };
+
   const profile = data?.profile || {};
-  const initials = profile.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase() || "U";
+  const initials =
+    profile.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase() || "U";
 
   return (
     <header
@@ -276,7 +444,7 @@ export default function TopNavbar() {
             fill="currentColor"
           />
           <span className="text-[12px] font-semibold text-amber-400/90 tracking-wide">
-            {STREAK_DAYS} day streak
+            {data.analytics.streakDays} day streak
           </span>
         </div>
       </div>
@@ -347,17 +515,14 @@ export default function TopNavbar() {
                           Recent Searches
                         </div>
                         {recentSearches.map((item) => (
-                          <div
+                          <ResultItem
                             key={`recent-${item.id}`}
-                            onClick={() => handleSelect(item)}
-                            className="flex items-center px-3 py-2 text-[13px] text-zinc-300 hover:bg-white/[0.04] rounded-lg cursor-pointer transition-colors"
-                          >
-                            <Clock size={14} className="mr-3 text-zinc-500" />
-                            <span>{item.title}</span>
-                            <span className="ml-auto text-[10px] text-zinc-500 capitalize px-2 py-0.5 bg-white/[0.03] border border-white/[0.05] rounded">
-                              {item.type}
-                            </span>
-                          </div>
+                            item={item}
+                            onSelect={handleSelect}
+                            Icon={iconMap[item.type] || Clock}
+                            query={""}
+                            isActive={false}
+                          />
                         ))}
                       </div>
                     )}
@@ -413,38 +578,15 @@ export default function TopNavbar() {
                         );
                         const isActive = globalIndex === activeIndex;
                         const Icon = item.icon || CheckSquare;
-
                         return (
-                          <div
+                          <ResultItem
                             key={item.id}
-                            data-active={isActive}
-                            onMouseEnter={() => setActiveIndex(globalIndex)}
-                            onClick={() => handleSelect(item)}
-                            className={`flex items-center px-3 py-2.5 mx-1 rounded-lg cursor-pointer transition-colors ${
-                              isActive
-                                ? "bg-violet-500/10 text-violet-200 border border-violet-500/20"
-                                : "text-zinc-300 border border-transparent hover:bg-white/[0.04]"
-                            }`}
-                          >
-                            <Icon
-                              size={14}
-                              className={`mr-3 ${item.color || "text-zinc-500"}`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <span className="truncate text-[13px] font-medium">
-                                <Highlight
-                                  text={item.title}
-                                  highlight={debouncedQuery}
-                                />
-                              </span>
-                            </div>
-                            {isActive && (
-                              <CornerDownLeft
-                                size={12}
-                                className="ml-3 text-violet-500 flex-shrink-0"
-                              />
-                            )}
-                          </div>
+                            item={item}
+                            onSelect={handleSelect}
+                            Icon={Icon}
+                            query={debouncedQuery}
+                            isActive={isActive}
+                          />
                         );
                       })}
                     </div>
@@ -452,7 +594,7 @@ export default function TopNavbar() {
               </div>
 
               {/* Footer Hints */}
-              <div className="bg-[#050816]/50 border-t border-white/[0.04] px-4 py-2 flex items-center justify-between text-[10px] text-zinc-500 font-medium tracking-wide">
+              <div className="bg-[#050816]/50 border-t border-white/[0.04] px-4 py-2 flex items-center justify-start text-[10px] text-zinc-500 font-medium tracking-wide">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1.5">
                     <kbd className="bg-white/[0.05] border border-white/[0.1] rounded px-1.5 py-0.5 text-[9px] font-sans">
@@ -503,7 +645,7 @@ export default function TopNavbar() {
             whileTap={{ scale: 0.95 }}
             onClick={() => {
               setNotifOpen((o) => !o);
-              setHasNotif(false);
+              // setHasNotif(false); // This would be handled by a context action
             }}
             className="
               h-9 w-9 rounded-lg
@@ -514,7 +656,7 @@ export default function TopNavbar() {
             "
           >
             <Bell size={15} />
-            {hasNotif && (
+            {unreadNotifications > 0 && (
               <span className="absolute top-[9px] right-[9px] flex h-[7px] w-[7px]">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-[7px] w-[7px] bg-violet-500 ring-2 ring-[#050816]" />
@@ -545,24 +687,27 @@ export default function TopNavbar() {
                   </p>
                 </div>
                 <div className="py-1">
-                  {notifications.map((n) => (
+                  {(data.notifications || []).slice(0, 5).map((n) => (
                     <div
                       key={n.title}
                       className="flex items-start gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors duration-150 cursor-pointer"
                     >
                       <div
-                        className={`mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full ${n.dot} shadow-[0_0_8px_currentColor]`}
+                        className={`mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full ${n.type === "success" ? "bg-emerald-400" : n.type === "warning" ? "bg-amber-400" : "bg-violet-400"} shadow-[0_0_8px_currentColor]`}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-semibold text-zinc-100 truncate">
                           {n.title}
                         </p>
                         <p className="text-[11px] text-zinc-500 truncate mt-0.5">
-                          {n.sub}
+                          {n.message}
                         </p>
                       </div>
                       <span className="text-[10px] text-zinc-600 font-medium flex-shrink-0 mt-0.5">
-                        {n.time}
+                        {new Date(n.time).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
                   ))}
@@ -580,34 +725,83 @@ export default function TopNavbar() {
         <div className="hidden sm:block w-px h-5 bg-white/[0.08] mx-1.5" />
 
         {/* Profile */}
-        <button className="flex items-center gap-3 group rounded-lg hover:bg-white/[0.02] p-1 transition-colors">
-          <div
-            className="
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setIsProfileOpen((p) => !p)}
+            className="flex items-center gap-3 group rounded-lg hover:bg-white/[0.02] p-1 transition-colors"
+          >
+            <div
+              className="
               h-[34px] w-[34px] rounded-lg
               bg-gradient-to-br from-violet-500 via-indigo-500 to-cyan-500
-          flex items-center justify-center overflow-hidden
+              flex items-center justify-center overflow-hidden
               text-[12px] font-black text-white
               shadow-[0_0_12px_rgba(99,102,241,0.4)]
               ring-1 ring-white/20
               group-hover:ring-violet-400/50
               transition-all duration-200
             "
-          >
-        {profile.avatar ? (
-          <img src={profile.avatar} alt={profile.name} className="h-full w-full object-cover" />
-        ) : (
-          <span className="drop-shadow-md">{initials}</span>
-        )}
-          </div>
-          <div className="hidden lg:block text-left">
-            <p className="text-[12px] font-bold text-zinc-100 leading-none">
-          {profile.name || "User"}
-            </p>
-            <p className="text-[10px] text-zinc-500 mt-1 font-medium">
-          StudyAI {profile.plan || "Pro"}
-            </p>
-          </div>
-        </button>
+            >
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="drop-shadow-md">{initials}</span>
+              )}
+            </div>
+            <div className="hidden lg:block text-left">
+              <p className="text-[12px] font-bold text-zinc-100 leading-none">
+                {profile.name || "User"}
+              </p>
+              <p className="text-[10px] text-zinc-500 mt-1 font-medium">
+                StudyAI {profile.plan || "Pro"}
+              </p>
+            </div>
+          </button>
+          <AnimatePresence>
+            {isProfileOpen && (
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-[#18181b] rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-50"
+              >
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {data.profile.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {data.profile.email}
+                  </p>
+                </div>
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      navigate("/settings");
+                      setIsProfileOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors"
+                  >
+                    <Settings size={16} className="text-gray-400" />
+                    <span>Settings</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
+                  >
+                    <LogOut size={16} />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </header>
   );

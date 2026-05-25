@@ -75,7 +75,15 @@ const modalTitles = {
 };
 
 export default function Settings() {
-  const { data, updateSettings, updateProfile } = useData();
+  const {
+    data,
+    updateSettings,
+    updateProfile,
+    updateAISettings,
+    updateNotifications,
+    updateProductivitySettings,
+    toggleTheme,
+  } = useData();
   const theme = data.settings.theme;
 
   const [activeModal, setActiveModal] = useState(null);
@@ -93,11 +101,6 @@ export default function Settings() {
       setErrors({}); // Clear errors when modal opens
     }
   }, [activeModal, data.settings, data.profile]);
-
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    updateSettings({ theme: newTheme });
-  };
 
   const validateProfile = useCallback(() => {
     const newErrors = {};
@@ -118,14 +121,38 @@ export default function Settings() {
     // Simulate network delay for better UX
     await new Promise((resolve) => setTimeout(resolve, 750));
 
-    if (activeModal === "profile") {
-      if (!validateProfile()) {
-        setIsSaving(false);
-        return;
-      }
-      updateProfile(localProfile);
-    } else {
-      updateSettings(localSettings);
+    switch (activeModal) {
+      case "profile":
+        if (!validateProfile()) {
+          setIsSaving(false);
+          return;
+        }
+        updateProfile(localProfile);
+        break;
+      case "ai":
+        updateAISettings({
+          aiInsightsEnabled: localSettings.aiInsightsEnabled,
+          smartRecommendations: localSettings.smartRecommendations,
+          aiStrictness: localSettings.aiStrictness,
+        });
+        break;
+      case "notifications":
+        updateNotifications({
+          notificationsEnabled: localSettings.notificationsEnabled,
+          emailNotifications: localSettings.emailNotifications,
+          motivationalAlerts: localSettings.motivationalAlerts,
+          soundEnabled: localSettings.soundEnabled,
+        });
+        break;
+      case "productivity":
+        updateProductivitySettings({
+          pomodoroWorkTime: localSettings.pomodoroWorkTime,
+          pomodoroBreakTime: localSettings.pomodoroBreakTime,
+          pomodoroLongBreak: localSettings.pomodoroLongBreak,
+          dailyGoalHours: localSettings.dailyGoalHours,
+          autoStartBreaks: localSettings.autoStartBreaks,
+        });
+        break;
     }
 
     setIsSaving(false);

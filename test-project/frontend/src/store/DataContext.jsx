@@ -44,6 +44,7 @@ export const A = {
   NOTIFICATION_READ: "NOTIFICATION_READ",
   NOTIFICATIONS_MARK_READ: "NOTIFICATIONS_MARK_READ",
   NOTIFICATION_DELETE: "NOTIFICATION_DELETE",
+  NOTIFICATION_CLEAR: "NOTIFICATION_CLEAR",
 
   SEARCH_SET: "SEARCH_SET",
 
@@ -606,6 +607,12 @@ function reducer(state, { type, payload }) {
         notifications: state.notifications.filter((n) => n.id !== payload),
       };
 
+    case A.NOTIFICATION_CLEAR:
+      return {
+        ...state,
+        notifications: [],
+      };
+
     /* ── SEARCH ── */
     case A.SEARCH_SET:
       return { ...state, searchQuery: payload };
@@ -1026,43 +1033,106 @@ export function DataProvider({ children }) {
      ACTIONS
   ════════════════════════════════════════ */
 
+  /* ── Sound & Notification Engine ── */
+  const playSound = useCallback(() => {
+    if (state.settings.soundEnabled) {
+      const audio = new Audio("/chime.mp3");
+      audio.play().catch(() => {});
+    }
+  }, [state.settings.soundEnabled]);
+
+  const notify = useCallback(
+    (msg, type = "success", icon) => {
+      if (!state.settings.notificationsEnabled) return;
+      if (type === "success") toast.success(msg, { icon });
+      else if (type === "error") toast.error(msg, { icon });
+      else toast(msg, { icon });
+    },
+    [state.settings.notificationsEnabled],
+  );
+
   /* Tasks */
-  const addTask = useCallback((t) => {
-    dispatch({ type: A.TASK_ADD, payload: t });
-    toast.success("Task added!");
-  }, []);
-  const deleteTask = useCallback((id) => {
-    dispatch({ type: A.TASK_DELETE, payload: id });
-    toast.success("Task removed.");
-  }, []);
+  const addTask = useCallback(
+    (t) => {
+      dispatch({ type: A.TASK_ADD, payload: t });
+      notify("Task added!");
+    },
+    [notify],
+  );
+
+  const deleteTask = useCallback(
+    (id) => {
+      dispatch({ type: A.TASK_DELETE, payload: id });
+      notify("Task removed.", "success");
+    },
+    [notify],
+  );
+
   const toggleTask = useCallback(
     (id) => {
       const task = state.tasks.find((t) => t.id === id);
       dispatch({ type: A.TASK_TOGGLE, payload: id });
-      if (task && !task.completed) toast.success("Task complete! 🎉");
+
+      if (task && !task.completed) {
+        playSound();
+        notify("Task complete! 🎉", "success");
+
+        dispatch({
+          type: A.NOTIFICATION_ADD,
+          payload: {
+            title: "Task Completed",
+            message: task.title,
+            type: "success",
+          },
+        });
+
+        const completed = state.tasks.filter((t) => t.completed).length + 1;
+        if (completed % 5 === 0 && state.settings.motivationalAlerts) {
+          notify(`Amazing! ${completed} tasks completed! 🔥`, "custom", "🔥");
+          dispatch({
+            type: A.NOTIFICATION_ADD,
+            payload: {
+              title: "Milestone Reached",
+              message: `${completed} tasks completed. You're unstoppable!`,
+              type: "info",
+            },
+          });
+        }
+      }
     },
-    [state.tasks],
+    [state.tasks, state.settings.motivationalAlerts, notify, playSound],
   );
-  const editTask = useCallback((id, updates) => {
-    dispatch({ type: A.TASK_EDIT, payload: { id, updates } });
-    toast.success("Task updated.");
-  }, []);
+
+  const editTask = useCallback(
+    (id, updates) => {
+      dispatch({ type: A.TASK_EDIT, payload: { id, updates } });
+      notify("Task updated.");
+    },
+    [notify],
+  );
+
   const reorderTasks = useCallback((tasks) => {
     dispatch({ type: A.TASK_REORDER, payload: tasks });
   }, []);
 
   /* Subjects */
-  const addSubject = useCallback((s) => {
-    dispatch({ type: A.SUBJECT_ADD, payload: s });
-    toast.success("Subject added!");
-  }, []);
+  const addSubject = useCallback(
+    (s) => {
+      dispatch({ type: A.SUBJECT_ADD, payload: s });
+      notify("Subject added!");
+    },
+    [notify],
+  );
   const deleteSubject = useCallback((id) => {
     dispatch({ type: A.SUBJECT_DELETE, payload: id });
   }, []);
-  const updateSubject = useCallback((id, updates) => {
-    dispatch({ type: A.SUBJECT_UPDATE, payload: { id, updates } });
-    toast.success("Subject updated.");
-  }, []);
+  const updateSubject = useCallback(
+    (id, updates) => {
+      dispatch({ type: A.SUBJECT_UPDATE, payload: { id, updates } });
+      notify("Subject updated.");
+    },
+    [notify],
+  );
   const updateSubjectProgress = useCallback((id, progress) => {
     dispatch({ type: A.SUBJECT_UPDATE_PROGRESS, payload: { id, progress } });
   }, []);
@@ -1089,29 +1159,48 @@ export function DataProvider({ children }) {
         type: A.FOCUS_RECORD_SESSION,
         payload: { durationMinutes, subjectId, mode },
       });
-      dispatch({
-        type: A.NOTIFICATION_ADD,
-        payload: {
-          title: "Focus session complete",
-          message: `${durationMinutes} min deep work logged.`,
-          type: "success",
-        },
-      });
-      if (subjectId)
+
+      playSound();
+      notify(`${durationMinutes} min session logged! 🔥`, "success");
+
+      if (subjectId) {
         dispatch({
           type: A.SUBJECT_LOG_HOURS,
           payload: { id: subjectId, hours: durationMinutes / 60 },
         });
-      toast.success(`${durationMinutes} min session logged! 🔥`);
+      }
+
+      if (state.settings.motivationalAlerts) {
+        const newTotal = state.focus.totalCompleted + 1;
+        if (newTotal % 4 === 0) {
+          dispatch({
+            type: A.NOTIFICATION_ADD,
+            payload: {
+              title: "Deep Work Master",
+              message: `Completed ${newTotal} sessions! Time for a long break.`,
+              type: "info",
+            },
+          });
+          notify(`Awesome! ${newTotal} sessions completed! 🧠`, "custom", "🧠");
+        }
+      }
     },
-    [],
+    [
+      state.settings.motivationalAlerts,
+      notify,
+      playSound,
+      state.focus.totalCompleted,
+    ],
   );
 
   /* Schedule */
-  const addScheduleSession = useCallback((s) => {
-    dispatch({ type: A.SCHEDULE_ADD, payload: s });
-    toast.success("Session scheduled.");
-  }, []);
+  const addScheduleSession = useCallback(
+    (s) => {
+      dispatch({ type: A.SCHEDULE_ADD, payload: s });
+      notify("Session scheduled.");
+    },
+    [notify],
+  );
   const deleteScheduleSession = useCallback((id) => {
     dispatch({ type: A.SCHEDULE_DELETE, payload: id });
   }, []);
@@ -1161,8 +1250,11 @@ export function DataProvider({ children }) {
   const markNotificationsRead = useCallback(() => {
     dispatch({ type: A.NOTIFICATIONS_MARK_READ });
   }, []);
-  const deleteNotification = useCallback((id) => {
+  const removeNotification = useCallback((id) => {
     dispatch({ type: A.NOTIFICATION_DELETE, payload: id });
+  }, []);
+  const clearNotifications = useCallback(() => {
+    dispatch({ type: A.NOTIFICATION_CLEAR });
   }, []);
 
   /* Search */
@@ -1242,7 +1334,8 @@ export function DataProvider({ children }) {
       addNotification,
       readNotification,
       markNotificationsRead,
-      deleteNotification,
+      removeNotification,
+      clearNotifications,
 
       /* Search */
       setSearchQuery,
@@ -1295,7 +1388,8 @@ export function DataProvider({ children }) {
       addNotification,
       readNotification,
       markNotificationsRead,
-      deleteNotification,
+      removeNotification,
+      clearNotifications,
       setSearchQuery,
       resetAll,
     ],
