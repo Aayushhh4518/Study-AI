@@ -7,33 +7,86 @@ import {
   RotateCcw,
   Sparkles,
   TimerReset,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
 
-const WORK_TIME = 25 * 60;
-const BREAK_TIME = 5 * 60;
-
 export default function FocusTimer() {
-  const { data, stats, recordFocusSession } = useData();
+  const { data, stats, recordFocusSession, updateSettings } = useData();
+  const {
+    pomodoroWorkTime,
+    pomodoroBreakTime,
+    pomodoroLongBreak,
+    autoStartBreaks,
+    soundEnabled,
+    reducedMotion,
+  } = data.settings;
+
+  const audioRef = useRef(null);
 
   const [focusState, setFocusState] = useState(() => {
     const saved = localStorage.getItem("studyai-focus-state");
-    return saved ? JSON.parse(saved) : { mode: "work", secondsLeft: WORK_TIME };
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // On initial load, prioritize current settings over any saved time.
+      if (parsed.mode === "work") {
+        parsed.secondsLeft = pomodoroWorkTime * 60;
+      } else if (parsed.mode === "break") {
+        parsed.secondsLeft = pomodoroBreakTime * 60;
+      } else if (parsed.mode === "longBreak") {
+        parsed.secondsLeft = pomodoroLongBreak * 60;
+      }
+      return parsed;
+    }
+    return { mode: "work", secondsLeft: pomodoroWorkTime * 60 };
   });
 
   const [isRunning, setIsRunning] = useState(false);
   const { mode, secondsLeft } = focusState;
-  const TOTAL_TIME = mode === "work" ? WORK_TIME : BREAK_TIME;
 
-  /* SAVE */
+  const TOTAL_TIME = useMemo(() => {
+    if (mode === "work") return pomodoroWorkTime * 60;
+    if (mode === "break") return pomodoroBreakTime * 60;
+    if (mode === "longBreak") return pomodoroLongBreak * 60;
+    return pomodoroWorkTime * 60;
+  }, [mode, pomodoroWorkTime, pomodoroBreakTime, pomodoroLongBreak]);
+
+  // This effect synchronizes the timer with external settings changes
+  // when the timer is not running. This is the key to live updates.
+  useEffect(() => {
+    if (!isRunning) {
+      let newDuration;
+      if (mode === "work") {
+        newDuration = pomodoroWorkTime * 60;
+      } else if (mode === "break") {
+        newDuration = pomodoroBreakTime * 60;
+      } else if (mode === "longBreak") {
+        newDuration = pomodoroLongBreak * 60;
+      }
+
+      if (secondsLeft !== newDuration) {
+        setFocusState((fs) => ({ ...fs, secondsLeft: newDuration }));
+      }
+    }
+  }, [
+    pomodoroWorkTime,
+    pomodoroBreakTime,
+    pomodoroLongBreak,
+    mode,
+    isRunning,
+    secondsLeft,
+  ]);
+
+  /* SAVE STATE TO LOCALSTORAGE */
   useEffect(() => {
     localStorage.setItem("studyai-focus-state", JSON.stringify(focusState));
   }, [focusState]);
 
-  /* TIMER */
+  /* CORE TIMER LOGIC */
   useEffect(() => {
     let interval;
 
@@ -45,44 +98,78 @@ export default function FocusTimer() {
         }));
       }, 1000);
     } else if (isRunning && secondsLeft === 0) {
-      setIsRunning(false);
+      setIsRunning(autoStartBreaks);
+
+      if (soundEnabled && audioRef.current) {
+        audioRef.current.play().catch(() => {});
+      }
 
       if (mode === "work") {
-        recordFocusSession(25);
-        toast.success("Focus session completed! Time for a break.", {
-          icon: "🎉",
-        });
-        setFocusState({ mode: "break", secondsLeft: BREAK_TIME });
+        recordFocusSession(pomodoroWorkTime);
+        const nextCompleted = data.focus.totalCompleted + 1;
+        const isLongBreakTime = nextCompleted > 0 && nextCompleted % 4 === 0;
+
+        if (isLongBreakTime) {
+          toast.success(`Focus session done! Time for a long break.`, {
+            icon: "🎉",
+          });
+          setFocusState({
+            mode: "longBreak",
+            secondsLeft: pomodoroLongBreak * 60,
+          });
+        } else {
+          toast.success("Focus session done! Time for a short break.", {
+            icon: "🎉",
+          });
+          setFocusState({ mode: "break", secondsLeft: pomodoroBreakTime * 60 });
+        }
       } else {
         toast.success("Break is over! Ready to focus?", { icon: "🧠" });
-        setFocusState({ mode: "work", secondsLeft: WORK_TIME });
+        setFocusState({ mode: "work", secondsLeft: pomodoroWorkTime * 60 });
       }
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, secondsLeft, mode, recordFocusSession]);
+  }, [
+    isRunning,
+    secondsLeft,
+    mode,
+    recordFocusSession,
+    pomodoroWorkTime,
+    pomodoroBreakTime,
+    pomodoroLongBreak,
+    autoStartBreaks,
+    soundEnabled,
+    data.focus.totalCompleted,
+  ]);
 
-  /* FORMAT */
+  /* FORMAT DISPLAY TIME */
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
-  /* PROGRESS */
+  /* CALCULATE PROGRESS FOR RING */
   const progress = useMemo(() => {
+    if (TOTAL_TIME === 0) return 0;
     return ((TOTAL_TIME - secondsLeft) / TOTAL_TIME) * 100;
   }, [secondsLeft, TOTAL_TIME]);
 
   /* CONTROLS */
   const handleReset = () => {
-    setFocusState({ mode: "work", secondsLeft: WORK_TIME });
+    setFocusState({ mode: "work", secondsLeft: pomodoroWorkTime * 60 });
     setIsRunning(false);
     toast.info("Timer reset");
   };
+
+  const toggleSound = useCallback(() => {
+    updateSettings({ soundEnabled: !soundEnabled });
+    toast.success(`Sound ${!soundEnabled ? "enabled" : "disabled"}`);
+  }, [soundEnabled, updateSettings]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: reducedMotion ? 0 : 0.4 }}
       className="space-y-8"
     >
       {/* HEADER */}
@@ -106,7 +193,7 @@ export default function FocusTimer() {
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/[0.08] text-violet-300 text-[12px] font-semibold tracking-wide shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] self-start sm:self-auto">
           {mode === "work" ? (
             <>
-              <Brain size={14} className="text-violet-400" /> AI Focus Active
+              <Brain size={14} className="text-violet-400" /> Deep Focus
             </>
           ) : (
             <>
@@ -133,11 +220,11 @@ export default function FocusTimer() {
               <h2 className="text-2xl font-bold text-zinc-100 tracking-tight">
                 {mode === "work"
                   ? isRunning
-                    ? "Deep Work Session"
+                    ? "Deep Focus Session"
                     : "Ready to Focus"
-                  : isRunning
-                    ? "Recovery Break"
-                    : "Take a Breather"}
+                  : mode === "break"
+                    ? "Short Break"
+                    : "Long Break"}
               </h2>
               <p className="text-zinc-500 mt-2 text-[14px] font-medium flex items-center justify-center gap-2">
                 {isRunning && (
@@ -154,9 +241,9 @@ export default function FocusTimer() {
                   ? isRunning
                     ? "Minimize distractions and maintain flow"
                     : "Start the timer when you're ready"
-                  : isRunning
+                  : mode === "break"
                     ? "Relax, stretch, and grab some water"
-                    : "Enjoy your well-earned break"}
+                    : "Recharge for the next big push"}
               </p>
             </div>
 
@@ -189,7 +276,10 @@ export default function FocusTimer() {
                   animate={{
                     strokeDashoffset: 879.6 - (879.6 * progress) / 100,
                   }}
-                  transition={{ duration: 1, ease: "linear" }}
+                  transition={{
+                    duration: reducedMotion ? 0 : 1,
+                    ease: "linear",
+                  }}
                   transform="rotate(-90 160 160)"
                 />
 
@@ -237,9 +327,7 @@ export default function FocusTimer() {
                 </h1>
 
                 <p className="text-zinc-400 mt-4 text-lg">
-                  {mode === "work"
-                    ? "Focus Time Remaining"
-                    : "Break Time Remaining"}
+                  {mode === "work" ? "Focus Time Remaining" : "Break Remaining"}
                 </p>
               </div>
             </div>
@@ -247,21 +335,24 @@ export default function FocusTimer() {
             {/* CONTROLS */}
             <div className="flex items-center gap-5 mt-14">
               {/* PAUSE */}
-              <button
-                onClick={() => setIsRunning(false)}
-                className="
-                  h-16
-                  w-16
-                  rounded-2xl
-                  border border-white/10
-                  bg-white/[0.05]
-                  flex items-center justify-center
-                  transition-all
-                  hover:bg-white/[0.08]
-                "
-              >
-                <Pause size={24} />
-              </button>
+              {isRunning ? (
+                <button
+                  onClick={() => setIsRunning(false)}
+                  className="
+                    h-16 w-16 rounded-2xl border border-white/10 bg-white/[0.05]
+                    flex items-center justify-center transition-all hover:bg-white/[0.08]
+                  "
+                >
+                  <Pause size={24} />
+                </button>
+              ) : (
+                <button
+                  onClick={toggleSound}
+                  className="h-16 w-16 rounded-2xl border border-white/10 bg-white/[0.05] flex items-center justify-center transition-all hover:bg-white/[0.08] text-zinc-400 hover:text-white"
+                >
+                  {soundEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+                </button>
+              )}
 
               {/* PLAY */}
               <button
@@ -298,6 +389,13 @@ export default function FocusTimer() {
               </button>
             </div>
           </div>
+          {/* Preload audio */}
+          <audio
+            ref={audioRef}
+            src="/chime.mp3"
+            preload="auto"
+            className="hidden"
+          />
         </PremiumCard>
 
         {/* SIDE PANEL */}
@@ -317,7 +415,7 @@ export default function FocusTimer() {
                 },
                 {
                   label: "Completed Sessions",
-                  value: data.focusSessions.totalCompleted,
+                  value: data.focus.totalCompleted,
                 },
                 {
                   label: "Productivity Score",

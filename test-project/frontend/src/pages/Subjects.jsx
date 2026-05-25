@@ -28,9 +28,9 @@ export default function Subjects() {
   // Calculate study hours per subject from focus history
   const enrichedSubjects = useMemo(() => {
     return (data.subjects || []).map((subject) => {
-      const totalMinutes = (data.focusSessions?.history || [])
+      const totalMinutes = (data.focus?.history || [])
         .filter((session) => session.subjectId === subject.id)
-        .reduce((acc, session) => acc + session.durationMinutes, 0);
+        .reduce((acc, session) => acc + (session.durationMinutes || 0), 0);
       const hours = (totalMinutes / 60).toFixed(1);
       return {
         ...subject,
@@ -40,7 +40,7 @@ export default function Subjects() {
           colorToGradientMap[availableColors[0]],
       };
     });
-  }, [data.subjects, data.focusSessions?.history]);
+  }, [data.subjects, data.focus?.history]);
 
   const handleOpenAddModal = () => {
     setModalMode("add");

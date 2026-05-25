@@ -1,6 +1,24 @@
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  BarChart2,
+  BookOpen,
+  CheckCircle,
+  History,
+  LayoutDashboard,
+  ListTodo,
+  LogOut,
+  Settings,
+  Zap,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useData } from "../store/DataContext";
 
+const fadeUp = {
+  hidden: { opacity: 0, y: -10, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -10, scale: 0.98 },
+};
 // --- Utility: Custom Hook for Debouncing ---
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -34,17 +52,85 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
+// --- Utility: Avatar Component ---
+const Avatar = ({ profile }) => {
+  const initials =
+    profile.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2) || "U";
+
+  if (profile.avatar) {
+    return (
+      <img
+        src={profile.avatar}
+        alt={profile.name}
+        className="w-8 h-8 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-full border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-sm font-bold text-indigo-600 dark:text-indigo-300">
+      {initials.toUpperCase()}
+    </div>
+  );
+};
+
+const staticActions = [
+  {
+    id: "action-dashboard",
+    title: "Go to Dashboard",
+    type: "action",
+    path: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "action-tasks",
+    title: "Go to Tasks",
+    type: "action",
+    path: "/tasks",
+    icon: ListTodo,
+  },
+  {
+    id: "action-analytics",
+    title: "Go to Analytics",
+    type: "action",
+    path: "/analytics",
+    icon: BarChart2,
+  },
+  {
+    id: "action-settings",
+    title: "Go to Settings",
+    type: "action",
+    path: "/settings",
+    icon: Settings,
+  },
+  {
+    id: "action-focus",
+    title: "Start Focus Session",
+    type: "action",
+    path: "/focus",
+    icon: Zap,
+  },
+];
+
 export default function TopNavbar() {
   const { data } = useData();
+  const navigate = useNavigate();
+
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 150);
   const [activeIndex, setActiveIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const searchRef = useRef(null);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
+  const profileRef = useRef(null);
 
   // Load recent searches from local storage on mount
   useEffect(() => {
@@ -71,6 +157,9 @@ export default function TopNavbar() {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setIsOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setIsProfileOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -78,38 +167,47 @@ export default function TopNavbar() {
 
   // Highly optimized filtering using useMemo referencing Context API Data
   const filteredResults = useMemo(() => {
-    if (!debouncedQuery) return [];
-    const lowerQuery = debouncedQuery.toLowerCase();
+    const q = debouncedQuery.toLowerCase();
+    if (!q) return [];
+
+    const actionResults = staticActions.filter((a) =>
+      a.title.toLowerCase().includes(q),
+    );
 
     return [
       {
+        category: "Actions",
+        items: actionResults,
+      },
+      {
         category: "Tasks",
         items: data.tasks
-          .filter((t) => t.title.toLowerCase().includes(lowerQuery))
-          .map((t) => ({ ...t, type: "task" })),
+          .filter((t) => t.title.toLowerCase().includes(q))
+          .map((t) => ({ ...t, type: "task", icon: CheckCircle })),
       },
       {
         category: "Subjects",
         items: data.subjects
-          .filter((s) => s.title.toLowerCase().includes(lowerQuery))
-          .map((s) => ({ ...s, type: "subject" })),
+          .filter((s) => s.title.toLowerCase().includes(q))
+          .map((s) => ({ ...s, type: "subject", icon: BookOpen })),
       },
       {
         category: "Focus Sessions",
-        items: data.focusSessions.history
+        items: data.focus.history
           .filter(
             (s) =>
               (s.subjectId &&
                 data.subjects
                   .find((sub) => sub.id === s.subjectId)
                   ?.title.toLowerCase()
-                  .includes(lowerQuery)) ||
-              s.date.toLowerCase().includes(lowerQuery),
+                  .includes(q)) ||
+              s.date.toLowerCase().includes(q),
           )
           .map((s) => ({
             ...s,
             title: `Focus Session - ${new Date(s.date).toLocaleDateString()}`,
             type: "session",
+            icon: History,
           })),
       },
     ].filter((group) => group.items.length > 0);
@@ -165,22 +263,41 @@ export default function TopNavbar() {
       ...recentSearches.filter((i) => i.id !== item.id),
     ].slice(0, 5);
     setRecentSearches(newRecents);
-    localStorage.setItem("studyai_recent_searches", JSON.stringify(newRecents));
+    localStorage.setItem(
+      "studyai_recent_searches",
+      JSON.stringify(newRecents.map(({ icon, ...rest }) => rest)), // Don't store icon components
+    );
 
-    // Here you can integrate with your router navigation or action callbacks
-    console.log(`Action selected: ${item.type}`, item.title);
+    if (item.type === "action") {
+      navigate(item.path);
+    } else if (item.type === "task") {
+      navigate("/tasks");
+    } else if (item.type === "subject") {
+      navigate("/subjects");
+    }
 
     setIsOpen(false);
     setQuery("");
   };
 
-  // Mock Recommendations for Empty State
   const recommendations = [
     "Computer Science 101",
     "Start Pomodoro",
     "Check Analytics",
     "Theme Settings",
   ];
+
+  const iconMap = {
+    action: Zap,
+    task: CheckCircle,
+    subject: BookOpen,
+    session: History,
+  };
+
+  const handleLogout = () => {
+    // Placeholder for actual logout logic
+    navigate("/login");
+  };
 
   return (
     <div className="flex items-center justify-between w-full p-4 bg-white dark:bg-[#09090b] border-b border-gray-100 dark:border-gray-800 shadow-sm">
@@ -243,29 +360,13 @@ export default function TopNavbar() {
                         Recent Searches
                       </div>
                       {recentSearches.map((item) => (
-                        <div
+                        <ResultItem
                           key={`recent-${item.id}`}
-                          onClick={() => handleSelect(item)}
-                          className="flex items-center px-2 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
-                        >
-                          <svg
-                            className="w-4 h-4 mr-3 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          <span>{item.title}</span>
-                          <span className="ml-auto text-xs text-gray-400 capitalize">
-                            {item.type}
-                          </span>
-                        </div>
+                          item={item}
+                          onSelect={handleSelect}
+                          Icon={iconMap[item.type] || History}
+                          query={""}
+                        />
                       ))}
                     </div>
                   )}
@@ -353,22 +454,8 @@ export default function TopNavbar() {
                               : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                           }`}
                         >
-                          {/* Icon Type Hint */}
-                          {item.type === "task" && (
-                            <div
-                              className={`w-2 h-2 rounded-full mr-3 ${item.color || "bg-green-500"}`}
-                            />
-                          )}
-                          {item.type === "subject" && (
-                            <div
-                              className={`w-2 h-2 rounded-full mr-3 ${item.color || "bg-blue-500"}`}
-                            />
-                          )}
-                          {item.type === "session" && (
-                            <div className="w-2 h-2 rounded-full bg-purple-500 mr-3" />
-                          )}
-
-                          <div className="flex-1 flex items-center justify-between min-w-0">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <item.icon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             <span className="truncate text-sm font-medium">
                               <Highlight
                                 text={item.title}
@@ -413,10 +500,87 @@ export default function TopNavbar() {
         )}
       </div>
 
-      {/* Navigation placeholder */}
-      <div className="flex items-center space-x-4">
-        <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900 rounded-full border border-indigo-200 dark:border-indigo-800"></div>
+      {/* User Profile Dropdown */}
+      <div className="flex items-center space-x-4" ref={profileRef}>
+        <div className="relative">
+          <button
+            onClick={() => setIsProfileOpen((p) => !p)}
+            className="transition-transform duration-200 hover:scale-105"
+          >
+            <Avatar profile={data.profile} />
+          </button>
+          <AnimatePresence>
+            {isProfileOpen && (
+              <motion.div
+                variants={fadeUp}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-[#18181b] rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-50"
+              >
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {data.profile.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {data.profile.email}
+                  </p>
+                </div>
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      navigate("/settings");
+                      setIsProfileOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors"
+                  >
+                    <Settings size={16} className="text-gray-400" />
+                    <span>Settings</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
+                  >
+                    <LogOut size={16} />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ResultItem({ item, onSelect, Icon, query }) {
+  return (
+    <div
+      onClick={() => onSelect(item)}
+      className="flex items-center px-2 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+    >
+      <Icon className="w-4 h-4 mr-3 text-gray-400" />
+      <span className="flex-1 truncate">
+        {query ? (
+          <Highlight text={item.title} highlight={query} />
+        ) : (
+          item.title
+        )}
+      </span>
+      {item.type && (
+        <span
+          className="
+            ml-auto text-[10px] font-semibold uppercase tracking-wider
+            px-1.5 py-0.5 rounded
+            bg-gray-100 dark:bg-gray-800
+            text-gray-500 dark:text-gray-400
+          "
+        >
+          {item.type}
+        </span>
+      )}
     </div>
   );
 }

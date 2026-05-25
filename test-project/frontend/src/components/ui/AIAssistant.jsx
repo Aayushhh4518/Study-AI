@@ -1,14 +1,20 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Send, Sparkles, User, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useData } from "../../store/DataContext";
 
 export default function AIAssistant() {
+  const { data, stats } = useData();
+  const { profile, settings } = data;
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: "assistant",
-      text: "Hi Alex! I'm your StudyAI assistant. How can I help you focus today?",
+      text: `Hi ${
+        profile.name
+      }! I'm your StudyAI assistant. How can I help you focus today?`,
     },
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -21,15 +27,15 @@ export default function AIAssistant() {
     "Generate a study schedule",
   ];
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping, isOpen]);
+    if (isOpen) scrollToBottom();
+  }, [messages, isTyping, isOpen, scrollToBottom]);
 
-  const handleSend = (text) => {
+  const handleSend = useCallback((text) => {
     if (!text.trim()) return;
 
     // Add user message
@@ -41,9 +47,20 @@ export default function AIAssistant() {
     // Simulate AI thinking and response
     setTimeout(() => {
       let reply = "I've noted that down. Let's keep focusing on your goals!";
+
       if (text.toLowerCase().includes("summarize")) {
-        reply =
-          "You currently have 3 pending tasks, and your physics report is high priority.";
+        const pending = stats.pendingTasks;
+        const high = stats.highPriorityTasks;
+        if (pending > 0) {
+          reply = `You have ${pending} pending task${pending > 1 ? "s" : ""}. ${
+            high > 0
+              ? `${high} of them are high priority.`
+              : "No high priority tasks."
+          } Keep up the great work!`;
+        } else {
+          reply =
+            "You have no pending tasks. Great job staying on top of your work! 🎉";
+        }
       } else if (text.toLowerCase().includes("procrastination")) {
         reply =
           "Try the Pomodoro Timer! Just 25 minutes of deep focus can break the cycle of procrastination.";
@@ -58,8 +75,11 @@ export default function AIAssistant() {
       ]);
       setIsTyping(false);
     }, 1500);
-  };
+  }, [stats.pendingTasks, stats.highPriorityTasks]);
 
+  if (!settings.aiInsightsEnabled && !settings.smartRecommendations) {
+    return null;
+  }
   return (
     <>
       {/* Floating Action Button */}

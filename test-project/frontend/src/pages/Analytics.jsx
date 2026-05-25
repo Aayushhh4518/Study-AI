@@ -9,10 +9,14 @@ import {
   Sparkles,
   Target,
   TrendingUp,
-  Zap
+  Zap,
 } from "lucide-react";
 
-import { FocusAreaChart, SubjectPieChart, TaskBarChart } from "../components/analytics/analytics-chart";
+import {
+  FocusAreaChart,
+  SubjectPieChart,
+  TaskBarChart,
+} from "../components/analytics/analytics-chart";
 import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
 
@@ -28,7 +32,7 @@ const fadeUp = {
 };
 
 export default function Analytics() {
-  const { data, stats } = useData();
+  const { data, stats, aiInsights: contextAiInsights } = useData();
 
   /* ── Dynamic Chart Data Calculation ── */
   const focusData = useMemo(() => {
@@ -39,22 +43,34 @@ export default function Analytics() {
       const dateStr = d.toISOString().split("T")[0];
       const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
 
-      const mins = (data?.focusSessions?.history || [])
+      const mins = (data?.focus?.history || [])
         .filter((s) => s.date.startsWith(dateStr))
         .reduce((acc, s) => acc + s.durationMinutes, 0);
 
       days.push({ day: dayName, hours: Number((mins / 60).toFixed(1)) });
     }
     return days;
-  }, [data?.focusSessions?.history]);
+  }, [data?.focus?.history]);
 
   const taskData = useMemo(() => {
     const tasks = data?.tasks || [];
     return [
-      { name: "High Priority", count: tasks.filter(t => t.priority === "High").length, fill: "#f43f5e" },
-      { name: "Medium Priority", count: tasks.filter(t => t.priority === "Medium").length, fill: "#f59e0b" },
-      { name: "Low Priority", count: tasks.filter(t => t.priority === "Low").length, fill: "#10b981" },
-    ].filter(d => d.count > 0);
+      {
+        name: "High Priority",
+        count: tasks.filter((t) => t.priority === "High").length,
+        fill: "#f43f5e",
+      },
+      {
+        name: "Medium Priority",
+        count: tasks.filter((t) => t.priority === "Medium").length,
+        fill: "#f59e0b",
+      },
+      {
+        name: "Low Priority",
+        count: tasks.filter((t) => t.priority === "Low").length,
+        fill: "#10b981",
+      },
+    ].filter((d) => d.count > 0);
   }, [data?.tasks]);
 
   const subjectData = useMemo(() => {
@@ -62,53 +78,59 @@ export default function Analytics() {
     return (data?.subjects || []).map((s, i) => ({
       name: s.title,
       value: s.progress > 0 ? s.progress : 1, // Fallback tiny slice if 0 progress
-      fill: colors[i % colors.length]
+      fill: colors[i % colors.length],
     }));
   }, [data?.subjects]);
 
   /* ── Derived Top Stats ── */
-  const topStats = useMemo(() => [
-    {
-      title: "Focus Score",
-      value: `${stats.productivityScore}%`,
-      icon: Target,
-      subtitle: stats.productivityScore > 80 ? "Excellent consistency" : "Building momentum",
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/20",
-      glow: "from-emerald-500",
-    },
-    {
-      title: "Focus Hours",
-      value: `${stats.totalFocusHours}h`,
-      icon: Clock3,
-      subtitle: "Lifetime deep work",
-      color: "text-violet-400",
-      bg: "bg-violet-500/10",
-      border: "border-violet-500/20",
-      glow: "from-violet-500",
-    },
-    {
-      title: "Task Completion",
-      value: `${stats.completedTasks}/${stats.totalTasks}`,
-      icon: CheckCircle2,
-      subtitle: "Tasks finalized",
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20",
-      glow: "from-blue-500",
-    },
-    {
-      title: "Active Streak",
-      value: `${stats.streak} Days`,
-      icon: TrendingUp,
-      subtitle: "Current consistency",
-      color: "text-cyan-400",
-      bg: "bg-cyan-500/10",
-      border: "border-cyan-500/20",
-      glow: "from-cyan-500",
-    },
-  ], [stats]);
+  const topStats = useMemo(
+    () => [
+      {
+        title: "Focus Score",
+        value: `${stats.productivityScore}%`,
+        icon: Target,
+        subtitle:
+          stats.productivityScore > 80
+            ? "Excellent consistency"
+            : "Building momentum",
+        color: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+        glow: "from-emerald-500",
+      },
+      {
+        title: "Focus Hours",
+        value: `${stats.totalFocusHours}h`,
+        icon: Clock3,
+        subtitle: "Lifetime deep work",
+        color: "text-violet-400",
+        bg: "bg-violet-500/10",
+        border: "border-violet-500/20",
+        glow: "from-violet-500",
+      },
+      {
+        title: "Task Completion",
+        value: `${stats.completedTasks}/${stats.totalTasks}`,
+        icon: CheckCircle2,
+        subtitle: "Tasks finalized",
+        color: "text-blue-400",
+        bg: "bg-blue-500/10",
+        border: "border-blue-500/20",
+        glow: "from-blue-500",
+      },
+      {
+        title: "Active Streak",
+        value: `${stats.streak} Days`,
+        icon: TrendingUp,
+        subtitle: "Current consistency",
+        color: "text-cyan-400",
+        bg: "bg-cyan-500/10",
+        border: "border-cyan-500/20",
+        glow: "from-cyan-500",
+      },
+    ],
+    [stats],
+  );
 
   /* ── Map Context AI Insights ── */
   const aiInsights = useMemo(() => {
@@ -119,14 +141,14 @@ export default function Analytics() {
       { text: "text-violet-400", bg: "bg-violet-500" },
     ];
 
-    return (data?.aiRecommendations || []).slice(0, 3).map((rec, i) => ({
+    return (contextAiInsights || []).slice(0, 3).map((rec, i) => ({
       text: rec.desc,
       highlight: rec.title,
       icon: icons[i % icons.length],
       color: colors[i % colors.length].text,
       bar: colors[i % colors.length].bg,
     }));
-  }, [data?.aiRecommendations]);
+  }, [contextAiInsights]);
 
   const peakFocusDay = useMemo(() => {
     if (!focusData.length) return "N/A";
@@ -301,7 +323,10 @@ export default function Analytics() {
                       </div>
                       <div className="flex-1">
                         <p className="text-[12.5px] text-zinc-300 leading-relaxed font-medium">
-                          <span className={`font-semibold mr-1 ${item.color}`}>{item.highlight}:</span> {item.text}
+                          <span className={`font-semibold mr-1 ${item.color}`}>
+                            {item.highlight}:
+                          </span>{" "}
+                          {item.text}
                         </p>
                       </div>
                     </div>
@@ -346,7 +371,9 @@ export default function Analytics() {
               {taskData.length > 0 ? (
                 <TaskBarChart data={taskData} />
               ) : (
-                <div className="h-full flex items-center justify-center text-sm text-zinc-500">No active tasks</div>
+                <div className="h-full flex items-center justify-center text-sm text-zinc-500">
+                  No active tasks
+                </div>
               )}
             </div>
           </PremiumCard>
@@ -364,10 +391,12 @@ export default function Analytics() {
               </p>
             </div>
             <div className="flex-1 relative z-10">
-               {subjectData.length > 0 ? (
+              {subjectData.length > 0 ? (
                 <SubjectPieChart data={subjectData} />
               ) : (
-                <div className="h-full flex items-center justify-center text-sm text-zinc-500">No active subjects</div>
+                <div className="h-full flex items-center justify-center text-sm text-zinc-500">
+                  No active subjects
+                </div>
               )}
             </div>
           </PremiumCard>
@@ -387,7 +416,7 @@ export default function Analytics() {
           },
           {
             label: "Completed Sessions",
-            value: data.focusSessions.totalCompleted,
+            value: data.focus.totalCompleted,
             sub: "Lifetime Pomodoros",
           },
           {

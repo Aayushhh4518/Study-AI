@@ -120,8 +120,12 @@ function buildInitialState() {
       theme: "dark",
       reducedMotion: false,
       aiInsightsEnabled: true,
+      smartRecommendations: true,
+      aiStrictness: "balanced",
       notificationsEnabled: true,
-      soundEnabled: false,
+      emailNotifications: false,
+      motivationalAlerts: true,
+      soundEnabled: true,
       pomodoroWorkTime: 25,
       pomodoroBreakTime: 5,
       pomodoroLongBreak: 15,
@@ -760,8 +764,21 @@ function sel_searchResults(state) {
    AI INSIGHT ENGINE
 ═══════════════════════════════════════════════════════════════ */
 function generateAIInsights(state, score) {
-  const { tasks, focus, analytics, subjects } = state;
+  const { tasks, focus, analytics, subjects, settings } = state;
   const insights = [];
+
+  if (!settings.aiInsightsEnabled) {
+    return [
+      {
+        id: "ai_disabled",
+        title: "AI Insights Disabled",
+        desc: "Enable AI Insights in your settings to receive personalized productivity recommendations.",
+        tag: "Settings",
+        accent: "amber",
+        type: "info",
+      },
+    ];
+  }
 
   const highPending = tasks.filter(
     (t) => t.priority === "High" && !t.completed,
@@ -970,17 +987,11 @@ export function DataProvider({ children }) {
   const searchResults = useMemo(
     () => sel_searchResults(state),
     [state.searchQuery, state.tasks, state.subjects, state.schedule],
-  ); // eslint-disable-line
+  );
   const aiInsights = useMemo(
     () => generateAIInsights(state, productivityScore),
-    [
-      state.tasks,
-      state.focus,
-      state.analytics,
-      state.subjects,
-      productivityScore,
-    ],
-  ); // eslint-disable-line
+    [state, productivityScore],
+  );
   const unreadCount = useMemo(
     () => state.notifications.filter((n) => !n.read).length,
     [state.notifications],

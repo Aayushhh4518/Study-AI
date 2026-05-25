@@ -14,7 +14,6 @@ import {
 
 import { useEffect, useState } from "react";
 import PremiumCard from "../components/ui/premium-card";
-import { useTheme } from "../context/ThemeContext";
 import { useData } from "../store/DataContext";
 
 /* ── UI Components ─────────────────────────────────────── */
@@ -77,20 +76,33 @@ const modalTitles = {
 };
 
 export default function Settings() {
-  const { theme, toggleTheme } = useTheme();
-  const { data, updateSettings } = useData();
+  const { data, updateSettings, updateProfile } = useData();
+  const theme = data.settings.theme;
 
   const [activeModal, setActiveModal] = useState(null);
   const [localSettings, setLocalSettings] = useState(data.settings);
+  const [localProfile, setLocalProfile] = useState(data.profile);
 
   // Sync local form state when opening modals
   useEffect(() => {
-    if (activeModal) setLocalSettings(data.settings);
-  }, [activeModal, data.settings]);
+    if (activeModal) {
+      setLocalSettings(data.settings);
+      setLocalProfile(data.profile);
+    }
+  }, [activeModal, data.settings, data.profile]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    updateSettings({ theme: newTheme });
+  };
 
   const handleSave = (e) => {
     e.preventDefault();
-    updateSettings(localSettings);
+    if (activeModal === "profile") {
+      updateProfile(localProfile);
+    } else {
+      updateSettings(localSettings);
+    }
     setActiveModal(null);
   };
 
@@ -104,11 +116,11 @@ export default function Settings() {
                 Display Name
               </label>
               <input
-                value={localSettings.displayName || "Alex User"}
+                value={localProfile.name || ""}
                 onChange={(e) =>
-                  setLocalSettings({
-                    ...localSettings,
-                    displayName: e.target.value,
+                  setLocalProfile({
+                    ...localProfile,
+                    name: e.target.value,
                   })
                 }
                 placeholder="Enter your name"
@@ -117,17 +129,35 @@ export default function Settings() {
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                Primary Study Goal
+                Email Address
               </label>
               <input
-                value={localSettings.studyGoal || "Master Machine Learning"}
+                type="email"
+                value={localProfile.email || ""}
                 onChange={(e) =>
-                  setLocalSettings({
-                    ...localSettings,
-                    studyGoal: e.target.value,
+                  setLocalProfile({
+                    ...localProfile,
+                    email: e.target.value,
                   })
                 }
-                placeholder="What are you focusing on?"
+                placeholder="your.email@example.com"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Avatar URL
+              </label>
+              <input
+                type="url"
+                value={localProfile.avatar || ""}
+                onChange={(e) =>
+                  setLocalProfile({
+                    ...localProfile,
+                    avatar: e.target.value,
+                  })
+                }
+                placeholder="https://example.com/avatar.png"
                 className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
               />
             </div>
@@ -146,9 +176,28 @@ export default function Settings() {
                 </p>
               </div>
               <Toggle
-                checked={localSettings.aiInsightsEnabled}
+                checked={localSettings.aiInsightsEnabled ?? true}
                 onChange={(v) =>
                   setLocalSettings({ ...localSettings, aiInsightsEnabled: v })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Smart Recommendations
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  AI-driven task and focus scheduling.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.smartRecommendations ?? true}
+                onChange={(v) =>
+                  setLocalSettings({
+                    ...localSettings,
+                    smartRecommendations: v,
+                  })
                 }
               />
             </div>
@@ -192,12 +241,44 @@ export default function Settings() {
                 </p>
               </div>
               <Toggle
-                checked={localSettings.notificationsEnabled}
+                checked={localSettings.notificationsEnabled ?? true}
                 onChange={(v) =>
                   setLocalSettings({
                     ...localSettings,
                     notificationsEnabled: v,
                   })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Email Summaries
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Weekly productivity reports.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.emailNotifications ?? false}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, emailNotifications: v })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Motivational Alerts
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Daily streak and goal reminders.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.motivationalAlerts ?? true}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, motivationalAlerts: v })
                 }
               />
             </div>
@@ -225,7 +306,7 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                  Pomodoro Length (m)
+                  Focus Duration (m)
                 </label>
                 <input
                   type="number"
@@ -254,6 +335,44 @@ export default function Settings() {
                     setLocalSettings({
                       ...localSettings,
                       pomodoroBreakTime: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Long Break (m)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={localSettings.pomodoroLongBreak || 15}
+                  onChange={(e) =>
+                    setLocalSettings({
+                      ...localSettings,
+                      pomodoroLongBreak: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Daily Goal (hrs)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="24"
+                  value={localSettings.dailyGoalHours || 4}
+                  onChange={(e) =>
+                    setLocalSettings({
+                      ...localSettings,
+                      dailyGoalHours: Number(e.target.value),
                     })
                   }
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"

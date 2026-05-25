@@ -1,372 +1,696 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, X } from "lucide-react";
+
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-} from "react";
+  Bell,
+  BrainCircuit,
+  Clock3,
+  MoonStar,
+  Shield,
+  Sparkles,
+  Sun,
+  User,
+  X,
+} from "lucide-react";
 
-const ModalContext = createContext({
-  onClose: () => {},
-  loading: false,
-});
+import { useEffect, useState } from "react";
+import PremiumCard from "../components/ui/premium-card";
+import { useData } from "../store/DataContext";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export function useModal() {
-  return useContext(ModalContext);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   ANIMATION VARIANTS
-   Defined outside component — never re-created on render
-───────────────────────────────────────────────────────────── */
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.18, ease: "easeOut" } },
-  exit: { opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
-};
-
-const panelVariants = {
-  hidden: { opacity: 0, scale: 0.97, y: 10 },
-  show: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.97,
-    y: 6,
-    transition: { duration: 0.16, ease: "easeIn" },
-  },
-};
-
-/* ─────────────────────────────────────────────────────────────
-   MODAL FOOTER
-   Exported so consumers can compose their own action rows
-───────────────────────────────────────────────────────────── */
-export function ModalFooter({ children, className = "" }) {
-  return (
-    <div
-      className={`
-      flex-shrink-0 flex items-center justify-end gap-2.5
-      px-6 py-4
-      border-t border-white/[0.07]
-      ${className}
-    `}
-    >
-      {children}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   MODAL CANCEL BUTTON
-───────────────────────────────────────────────────────────── */
-export function ModalCancelButton({ onClick, children = "Cancel", disabled }) {
+/* ── UI Components ─────────────────────────────────────── */
+function Toggle({ checked, onChange }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="
-        px-4 py-2 rounded-[10px] text-[13px] font-medium
-        border border-white/[0.08] bg-white/[0.04] text-zinc-300
-        hover:bg-white/[0.07] hover:text-white
-        disabled:opacity-40 disabled:cursor-not-allowed
-        transition-colors duration-150
-      "
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0E1A] ${
+        checked ? "bg-violet-500" : "bg-zinc-700"
+      }`}
     >
-      {children}
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`}
+      />
     </button>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   MODAL PRIMARY BUTTON
-───────────────────────────────────────────────────────────── */
-export function ModalPrimaryButton({
-  onClick,
-  children = "Confirm",
-  loading = false,
-  disabled = false,
-  destructive = false,
-  type = "button",
-}) {
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={`
-        relative flex items-center gap-2
-        px-4 py-2 rounded-[10px] text-[13px] font-semibold text-white
-        border transition-colors duration-150
-        disabled:opacity-50 disabled:cursor-not-allowed
-        ${
-          destructive
-            ? "bg-rose-500/80 border-rose-500/40 hover:bg-rose-500/95"
-            : "bg-gradient-to-r from-violet-500/80 to-indigo-500/80 border-violet-500/30 hover:from-violet-500/95 hover:to-indigo-500/95"
-        }
-      `}
-    >
-      {loading && (
-        <Loader2
-          size={13}
-          className="animate-spin text-white/70 flex-shrink-0"
-        />
-      )}
-      {children}
-    </button>
-  );
-}
+const settingsCards = [
+  {
+    id: "profile",
+    title: "Profile Settings",
+    desc: "Manage your account information and preferences.",
+    icon: User,
+    color: "from-violet-500 to-indigo-500",
+  },
+  {
+    id: "ai",
+    title: "AI Preferences",
+    desc: "Customize AI productivity recommendations.",
+    icon: BrainCircuit,
+    color: "from-cyan-500 to-blue-500",
+  },
+  {
+    id: "notifications",
+    title: "Notifications",
+    desc: "Control reminders and smart alerts.",
+    icon: Bell,
+    color: "from-pink-500 to-rose-500",
+  },
+  {
+    id: "productivity",
+    title: "Productivity",
+    desc: "Configure Pomodoro timers and study workflow.",
+    icon: Clock3,
+    color: "from-emerald-500 to-teal-500",
+  },
+];
 
-/* ─────────────────────────────────────────────────────────────
-   MAIN MODAL COMPONENT
-───────────────────────────────────────────────────────────── */
-
-const SIZE = {
-  xs: "max-w-sm",
-  sm: "max-w-md",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
-  xl: "max-w-3xl",
-  full: "max-w-[95vw]",
+const modalTitles = {
+  profile: "Profile Settings",
+  ai: "AI Preferences",
+  notifications: "Notification Settings",
+  productivity: "Productivity & Focus",
 };
 
-export default function Modal({
-  /* Core */
-  isOpen,
-  onClose,
-  title,
-  description,
-  children,
+export default function Settings() {
+  const { data, updateSettings, updateProfile } = useData();
+  const theme = data.settings.theme;
 
-  /* Layout */
-  size = "sm", // xs | sm | md | lg | xl | full
-  maxHeight = "85vh", // CSS max-height for the panel
+  const [activeModal, setActiveModal] = useState(null);
+  const [localSettings, setLocalSettings] = useState(data.settings);
+  const [localProfile, setLocalProfile] = useState(data.profile);
 
-  /* Footer (optional convenience props) */
-  footer, // ReactNode — renders in sticky footer
-  onConfirm, // if provided, renders default Cancel + Confirm footer
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-  loading = false,
-  confirmDisabled = false,
-  destructive = false,
-
-  /* Behaviour */
-  closeOnOverlayClick = true,
-  showCloseButton = true,
-
-  /* Style */
-  className = "",
-  contentClassName = "",
-}) {
-  const panelRef = useRef(null);
-  const previousFocus = useRef(null);
-
-  /* ── Body scroll lock ── */
+  // Sync local form state when opening modals
   useEffect(() => {
-    if (!isOpen) return;
-    const scrollY = window.scrollY;
-    const scrollbarW = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = "hidden";
-    document.body.style.paddingRight = `${scrollbarW}px`;
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-      window.scrollTo(0, scrollY);
-    };
-  }, [isOpen]);
-
-  /* ── Focus management ── */
-  useEffect(() => {
-    if (isOpen) {
-      previousFocus.current = document.activeElement;
-      // Defer so the panel is rendered before focusing
-      const raf = requestAnimationFrame(() => {
-        const el = panelRef.current?.querySelector(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        el?.focus();
-      });
-      return () => cancelAnimationFrame(raf);
-    } else {
-      previousFocus.current?.focus();
+    if (activeModal) {
+      setLocalSettings(data.settings);
+      setLocalProfile(data.profile);
     }
-  }, [isOpen]);
+  }, [activeModal, data.settings, data.profile]);
 
-  /* ── Escape key close ── */
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    },
-    [onClose],
-  );
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    updateSettings({ theme: newTheme });
+  };
 
-  useEffect(() => {
-    if (!isOpen) return;
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleKeyDown]);
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (activeModal === "profile") {
+      updateProfile(localProfile);
+    } else {
+      updateSettings(localSettings);
+    }
+    setActiveModal(null);
+  };
 
-  /* ── Overlay click ── */
-  const handleOverlayClick = useCallback(() => {
-    if (closeOnOverlayClick) onClose();
-  }, [closeOnOverlayClick, onClose]);
-
-  /* ── Prevent clicks inside panel from closing ── */
-  const stopPropagation = useCallback((e) => e.stopPropagation(), []);
-
-  const sizeClass = SIZE[size] ?? SIZE.sm;
+  const renderModalContent = () => {
+    switch (activeModal) {
+      case "profile":
+        return (
+          <div className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Display Name
+              </label>
+              <input
+                value={localProfile.name || ""}
+                onChange={(e) =>
+                  setLocalProfile({
+                    ...localProfile,
+                    name: e.target.value,
+                  })
+                }
+                placeholder="Enter your name"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={localProfile.email || ""}
+                onChange={(e) =>
+                  setLocalProfile({
+                    ...localProfile,
+                    email: e.target.value,
+                  })
+                }
+                placeholder="your.email@example.com"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Avatar URL
+              </label>
+              <input
+                type="url"
+                value={localProfile.avatar || ""}
+                onChange={(e) =>
+                  setLocalProfile({
+                    ...localProfile,
+                    avatar: e.target.value,
+                  })
+                }
+                placeholder="https://example.com/avatar.png"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all"
+              />
+            </div>
+          </div>
+        );
+      case "ai":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  AI Insights
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Receive smart productivity suggestions.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.aiInsightsEnabled ?? true}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, aiInsightsEnabled: v })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Smart Recommendations
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  AI-driven task and focus scheduling.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.smartRecommendations ?? true}
+                onChange={(v) =>
+                  setLocalSettings({
+                    ...localSettings,
+                    smartRecommendations: v,
+                  })
+                }
+              />
+            </div>
+            <div className="pt-2 border-t border-white/10">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 mt-4">
+                AI Strictness
+              </label>
+              <select
+                value={localSettings.aiStrictness || "balanced"}
+                onChange={(e) =>
+                  setLocalSettings({
+                    ...localSettings,
+                    aiStrictness: e.target.value,
+                  })
+                }
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm font-medium text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all appearance-none cursor-pointer"
+              >
+                <option value="relaxed" className="bg-[#0A0E1A]">
+                  Relaxed - Gentle nudges
+                </option>
+                <option value="balanced" className="bg-[#0A0E1A]">
+                  Balanced - Standard coaching
+                </option>
+                <option value="strict" className="bg-[#0A0E1A]">
+                  Strict - Hardcore accountability
+                </option>
+              </select>
+            </div>
+          </div>
+        );
+      case "notifications":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Push Notifications
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Allow alerts for timers and tasks.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.notificationsEnabled ?? true}
+                onChange={(v) =>
+                  setLocalSettings({
+                    ...localSettings,
+                    notificationsEnabled: v,
+                  })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Email Summaries
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Weekly productivity reports.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.emailNotifications ?? false}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, emailNotifications: v })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Motivational Alerts
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Daily streak and goal reminders.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.motivationalAlerts ?? true}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, motivationalAlerts: v })
+                }
+              />
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Sound Effects
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Play a chime when sessions complete.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.soundEnabled ?? true}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, soundEnabled: v })
+                }
+              />
+            </div>
+          </div>
+        );
+      case "productivity":
+        return (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Focus Duration (m)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={localSettings.pomodoroWorkTime || 25}
+                  onChange={(e) =>
+                    setLocalSettings({
+                      ...localSettings,
+                      pomodoroWorkTime: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Break Length (m)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={localSettings.pomodoroBreakTime || 5}
+                  onChange={(e) =>
+                    setLocalSettings({
+                      ...localSettings,
+                      pomodoroBreakTime: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Long Break (m)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={localSettings.pomodoroLongBreak || 15}
+                  onChange={(e) =>
+                    setLocalSettings({
+                      ...localSettings,
+                      pomodoroLongBreak: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Daily Goal (hrs)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="24"
+                  value={localSettings.dailyGoalHours || 4}
+                  onChange={(e) =>
+                    setLocalSettings({
+                      ...localSettings,
+                      dailyGoalHours: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-violet-500 focus:ring-1 transition-all [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-4 border-t border-white/10 mt-2">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Auto-start Breaks
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Automatically begin break timer.
+                </p>
+              </div>
+              <Toggle
+                checked={localSettings.autoStartBreaks ?? false}
+                onChange={(v) =>
+                  setLocalSettings({ ...localSettings, autoStartBreaks: v })
+                }
+              />
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <ModalContext.Provider value={{ onClose, loading }}>
-      <AnimatePresence>
-        {isOpen && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-8"
+    >
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1
+            className="
+              text-5xl
+              font-bold
+              tracking-tight
+              bg-gradient-to-r
+              from-white
+              via-violet-200
+              to-blue-200
+              bg-clip-text
+              text-transparent
+            "
           >
-            {/* ── Backdrop ── */}
-            <motion.div
-              key="backdrop"
-              variants={backdropVariants}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-              onClick={handleOverlayClick}
-              className="absolute inset-0 bg-black/60 backdrop-blur-[3px]"
-            />
+            Settings
+          </h1>
 
-            {/* ── Panel ── */}
-            <motion.div
-              key="panel"
-              ref={panelRef}
-              variants={panelVariants}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-              onClick={stopPropagation}
-              style={{ maxHeight }}
-              className={`
-                relative z-10 w-full ${sizeClass}
-                flex flex-col
-                rounded-[18px]
-                border border-white/[0.09]
-                bg-[#0c1028]/97
-                shadow-[0_24px_64px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)]
+          <p className="text-zinc-400 mt-3 text-lg">
+            Customize your AI productivity experience.
+          </p>
+        </div>
+
+        {/* BADGE */}
+        <div
+          className="
+            flex items-center gap-3
+            rounded-2xl
+            border border-white/10
+            bg-white/[0.04]
+            px-5 py-3
+            backdrop-blur-xl
+          "
+        >
+          <div
+            className="
+              h-10 w-10
+              rounded-xl
+              bg-gradient-to-br
+              from-violet-500
+              to-blue-500
+              flex items-center justify-center
+              shadow-[0_0_35px_rgba(99,102,241,0.35)]
+            "
+          >
+            <Sparkles size={18} />
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-white">Smart Settings</p>
+
+            <p className="text-xs text-zinc-400">AI personalization enabled</p>
+          </div>
+        </div>
+      </div>
+
+      {/* SETTINGS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {settingsCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <PremiumCard
+              key={card.title}
+              className="
+                p-6
+                relative
                 overflow-hidden
-                ${className}
-              `}
-            >
-              {/* Ambient top glow */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-32 w-64 rounded-full bg-violet-500/[0.07] blur-3xl"
-              />
-
-              {/* ── Header ── */}
-              <div
-                className="
-                relative z-10 flex-shrink-0
-                flex items-start justify-between
-                px-6 pt-5 pb-4
-                border-b border-white/[0.07]
               "
-              >
-                <div className="pr-8">
-                  <h2
-                    id="modal-title"
-                    className="text-[15.5px] font-bold text-white tracking-tight leading-snug"
-                  >
-                    {title}
-                  </h2>
-                  {description && (
-                    <p className="text-[12.5px] text-zinc-500 mt-1 leading-relaxed">
-                      {description}
-                    </p>
-                  )}
-                </div>
-
-                {showCloseButton && (
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    aria-label="Close modal"
-                    className="
-                      absolute top-4 right-4
-                      h-7 w-7 rounded-[8px]
-                      flex items-center justify-center
-                      text-zinc-600 hover:text-zinc-200
-                      hover:bg-white/[0.06]
-                      border border-transparent hover:border-white/[0.08]
-                      transition-colors duration-150
-                      focus:outline-none focus:ring-1 focus:ring-violet-500/50
-                    "
-                  >
-                    <X size={14} strokeWidth={2.5} />
-                  </button>
-                )}
-              </div>
-
-              {/* ── Scrollable content body ── */}
+            >
+              {/* GLOW */}
               <div
                 className={`
-                  relative z-10 flex-1 overflow-y-auto
-                  px-6 py-5
-                  scrollbar-thin
-                  ${contentClassName}
+                  absolute
+                  top-0
+                  right-0
+                  h-32
+                  w-32
+                  rounded-full
+                  blur-3xl
+                  opacity-20
+                  bg-gradient-to-br
+                  ${card.color}
                 `}
-                style={{
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "rgba(99,102,241,0.25) transparent",
-                }}
+              />
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      {card.title}
+                    </h2>
+
+                    <p className="text-zinc-400 mt-3 max-w-sm">{card.desc}</p>
+                  </div>
+
+                  <div
+                    className={`
+                      h-14
+                      w-14
+                      rounded-2xl
+                      bg-gradient-to-br
+                      ${card.color}
+                      flex items-center justify-center
+                      shadow-[0_0_30px_rgba(99,102,241,0.25)]
+                    `}
+                  >
+                    <Icon size={24} />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveModal(card.id)}
+                  className="
+                    mt-8
+                    rounded-2xl
+                    border border-white/10
+                    bg-white/[0.04]
+                    px-5 py-3
+                    text-sm
+                    font-medium
+                    text-white
+                    transition-all
+                    hover:bg-white/[0.08]
+                    hover:border-white/20
+                  "
+                >
+                  Configure
+                </button>
+              </div>
+            </PremiumCard>
+          );
+        })}
+      </div>
+
+      {/* SYSTEM PANELS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* APPEARANCE PANEL */}
+        <PremiumCard className="p-6 relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 h-32 w-32 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-emerald-500 to-cyan-500 pointer-events-none" />
+          <div className="relative z-10 flex-1">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Appearance
+                </h2>
+                <p className="text-zinc-400 mt-2 max-w-sm">
+                  Switch between premium dark and light themes.
+                </p>
+              </div>
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.25)]">
+                {theme === "dark" ? <MoonStar size={24} /> : <Sun size={24} />}
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col xl:flex-row items-start xl:items-center gap-4">
+              <button
+                onClick={toggleTheme}
+                className="rounded-2xl bg-gradient-to-r from-violet-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white transition-all hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(99,102,241,0.35)] whitespace-nowrap"
               >
-                {children}
+                {theme === "dark"
+                  ? "Switch to Light Mode"
+                  : "Switch to Dark Mode"}
+              </button>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-zinc-300">
+                Active Theme:
+                <span className="ml-2 font-semibold capitalize text-white">
+                  {theme}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+              <div>
+                <h4 className="text-[15px] font-semibold text-white">
+                  Reduced Motion
+                </h4>
+                <p className="text-sm text-zinc-400">
+                  Disable complex background animations.
+                </p>
+              </div>
+              <Toggle
+                checked={data.settings.reducedMotion ?? false}
+                onChange={(v) => updateSettings({ reducedMotion: v })}
+              />
+            </div>
+          </div>
+        </PremiumCard>
+
+        {/* SECURITY PANEL */}
+        <PremiumCard className="p-6 h-full flex flex-col">
+          <div className="flex items-center gap-4">
+            <div
+              className="
+                h-16 w-16 rounded-3xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center shadow-[0_0_35px_rgba(99,102,241,0.35)] flex-shrink-0
+              "
+            >
+              <Shield size={28} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-semibold text-white">
+                Security & Privacy
+              </h3>
+              <p className="text-zinc-400 mt-1">
+                Your AI productivity data is securely encrypted.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 mt-8 flex-1">
+            {[
+              { label: "Two-factor Authentication", value: "Enabled" },
+              { label: "Cloud Sync", value: "Active" },
+              { label: "AI Data Protection", value: "Secured" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+              >
+                <p className="text-zinc-400 text-sm">{item.label}</p>
+                <h4 className="text-[15px] font-semibold text-emerald-400">
+                  {item.value}
+                </h4>
+              </div>
+            ))}
+          </div>
+        </PremiumCard>
+      </div>
+
+      {/* ── MODALS ── */}
+      <AnimatePresence>
+        {activeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setActiveModal(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-[#0A0E1A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden z-10 flex flex-col"
+            >
+              <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                <h3 className="text-lg font-bold text-white tracking-wide">
+                  {modalTitles[activeModal]}
+                </h3>
+                <button
+                  onClick={() => setActiveModal(null)}
+                  className="text-zinc-500 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* ── Footer ── */}
-              {(footer || onConfirm) && (
-                <div
-                  className="
-                  relative z-10 flex-shrink-0
-                  flex items-center justify-end gap-2.5
-                  px-6 py-4
-                  border-t border-white/[0.07]
-                  bg-white/[0.015]
-                "
-                >
-                  {footer ?? (
-                    <>
-                      <ModalCancelButton onClick={onClose} disabled={loading}>
-                        {cancelLabel}
-                      </ModalCancelButton>
-                      <ModalPrimaryButton
-                        onClick={onConfirm}
-                        loading={loading}
-                        disabled={confirmDisabled}
-                        destructive={destructive}
-                      >
-                        {confirmLabel}
-                      </ModalPrimaryButton>
-                    </>
-                  )}
+              <form onSubmit={handleSave} className="p-6 space-y-6">
+                {renderModalContent()}
+
+                <div className="pt-6 border-t border-white/10 flex items-center justify-end gap-3 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal(null)}
+                    className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-xl shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all"
+                  >
+                    Save Changes
+                  </button>
                 </div>
-              )}
+              </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-    </ModalContext.Provider>
+    </motion.div>
   );
 }

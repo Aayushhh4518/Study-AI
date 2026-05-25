@@ -9,9 +9,10 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import ProductivityChart from "../components/dashboard/productivity-chart";
 import PremiumCard from "../components/ui/premium-card";
+import { useData } from "../store/DataContext";
 
 /* ── Animated Counter Helper ──────────────────────────── */
 
@@ -36,83 +37,6 @@ function AnimatedCounter({ value }) {
 
 /* ── Data ─────────────────────────────────────────────── */
 
-const stats = [
-  {
-    title: "Study Hours",
-    value: 128,
-    suffix: "h",
-    delta: "+12%",
-    deltaLabel: "vs last week",
-    icon: Clock3,
-    from: "from-violet-500",
-    to: "to-indigo-500",
-    glowColor: "rgba(139,92,246,0.18)",
-  },
-  {
-    title: "Tasks Done",
-    value: 42,
-    suffix: "",
-    delta: "8 left",
-    deltaLabel: "remaining",
-    icon: CheckCircle2,
-    from: "from-cyan-500",
-    to: "to-blue-500",
-    glowColor: "rgba(6,182,212,0.18)",
-  },
-  {
-    title: "Subjects",
-    value: 8,
-    suffix: "",
-    delta: "2 active",
-    deltaLabel: "today",
-    icon: BookOpen,
-    from: "from-pink-500",
-    to: "to-rose-500",
-    glowColor: "rgba(236,72,153,0.18)",
-  },
-  {
-    title: "AI Sessions",
-    value: 19,
-    suffix: "",
-    delta: "+4",
-    deltaLabel: "this week",
-    icon: BrainCircuit,
-    from: "from-emerald-500",
-    to: "to-teal-500",
-    glowColor: "rgba(16,185,129,0.18)",
-  },
-];
-
-const miniStats = [
-  { label: "Focus Score", value: "92%", sub: "Excellent" },
-  { label: "Weekly Growth", value: "+18%", sub: "Trending up" },
-  { label: "Streak", value: "7 days", sub: "Keep going" },
-];
-
-const aiInsights = [
-  {
-    title: "Focus Increased",
-    desc: "Productivity improved 18% vs last week.",
-    icon: TrendingUp,
-    accent: "violet",
-    tag: "+18%",
-  },
-  {
-    title: "Best Study Time",
-    desc: "Peak performance: 7 PM – 9 PM nightly.",
-    icon: Zap,
-    accent: "cyan",
-    tag: "7–9 PM",
-  },
-  {
-    title: "AI Recommendation",
-    desc: "Revise Data Structures tomorrow for retention.",
-    icon: Sparkles,
-    accent: "indigo",
-    tag: "Due soon",
-  },
-];
-
 const accentMap = {
   violet: {
     icon: "bg-violet-500/10 text-violet-400 border-violet-500/20",
@@ -128,6 +52,21 @@ const accentMap = {
     icon: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
     tag: "bg-indigo-500/[0.08] text-indigo-300 border-indigo-500/15",
     bar: "bg-indigo-400",
+  },
+  rose: {
+    icon: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    tag: "bg-rose-500/[0.08] text-rose-300 border-rose-500/15",
+    bar: "bg-rose-500",
+  },
+  amber: {
+    icon: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    tag: "bg-amber-500/[0.08] text-amber-300 border-amber-500/15",
+    bar: "bg-amber-500",
+  },
+  emerald: {
+    icon: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    tag: "bg-emerald-500/[0.08] text-emerald-300 border-emerald-500/15",
+    bar: "bg-emerald-500",
   },
 };
 
@@ -145,6 +84,92 @@ const staggerGrid = {
 /* ── Component ─────────────────────────────────────────── */
 
 export default function Dashboard() {
+  const {
+    stats: contextStats,
+    aiInsights: contextAiInsights,
+    weeklyTrend,
+    data,
+  } = useData();
+
+  const stats = [
+    {
+      title: "Study Hours",
+      value: contextStats.totalFocusHours,
+      suffix: "h",
+      delta: "+12%",
+      deltaLabel: "vs last week",
+      icon: Clock3,
+      from: "from-violet-500",
+      to: "to-indigo-500",
+    },
+    {
+      title: "Tasks Done",
+      value: contextStats.completedTasks,
+      suffix: "",
+      delta: `${contextStats.pendingTasks} left`,
+      deltaLabel: "remaining",
+      icon: CheckCircle2,
+      from: "from-cyan-500",
+      to: "to-blue-500",
+    },
+    {
+      title: "Subjects",
+      value: contextStats.totalSubjects,
+      suffix: "",
+      delta: `${contextStats.activeSubjects} active`,
+      deltaLabel: "in progress",
+      icon: BookOpen,
+      from: "from-pink-500",
+      to: "to-rose-500",
+    },
+    {
+      title: "Focus Sessions",
+      value: contextStats.focusSessions,
+      suffix: "",
+      delta: `Streak: ${contextStats.streak}d`,
+      deltaLabel: "consistency",
+      icon: BrainCircuit,
+      from: "from-emerald-500",
+      to: "to-teal-500",
+    },
+  ];
+
+  const weeklyGrowth = useMemo(() => {
+    if (!weeklyTrend || weeklyTrend.length < 2) return "+0%";
+    const last = weeklyTrend[weeklyTrend.length - 1].score;
+    const secondLast = weeklyTrend[weeklyTrend.length - 2].score;
+    if (secondLast === 0) return last > 0 ? "+100%" : "+0%";
+    const diff = ((last - secondLast) / secondLast) * 100;
+    return `${diff >= 0 ? "+" : ""}${Math.round(diff)}%`;
+  }, [weeklyTrend]);
+
+  const miniStats = [
+    {
+      label: "Focus Score",
+      value: `${contextStats.productivityScore}%`,
+      sub: contextStats.productivityScore > 80 ? "Excellent" : "Good",
+    },
+    { label: "Weekly Growth", value: weeklyGrowth, sub: "Trending up" },
+    {
+      label: "Streak",
+      value: `${contextStats.streak} days`,
+      sub: "Keep going",
+    },
+  ];
+
+  const insightIcons = {
+    motivational: TrendingUp,
+    warning: Zap,
+    recommendation: Sparkles,
+    insight: BrainCircuit,
+    info: BrainCircuit,
+  };
+
+  const aiInsights = contextAiInsights.slice(0, 3).map((insight) => ({
+    ...insight,
+    icon: insightIcons[insight.type] || Sparkles,
+  }));
+
   return (
     <motion.div
       variants={fadeUp}
@@ -180,11 +205,13 @@ export default function Dashboard() {
           shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] self-start sm:self-auto
         "
         >
-          <div className="relative flex h-1.5 w-1.5 mr-1">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-500"></span>
-          </div>
-          System Active
+          {data.settings.aiInsightsEnabled ? (
+            <div className="relative flex h-1.5 w-1.5 mr-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-500"></span>
+            </div>
+          ) : null}
+          {data.settings.aiInsightsEnabled ? "System Active" : "AI Disabled"}
         </div>
       </div>
 
@@ -402,7 +429,7 @@ export default function Dashboard() {
           <div className="flex flex-col gap-3 flex-1">
             {aiInsights.map((item, i) => {
               const Icon = item.icon;
-              const colors = accentMap[item.accent];
+              const colors = accentMap[item.accent] || accentMap.violet;
               return (
                 <motion.div
                   key={item.title}

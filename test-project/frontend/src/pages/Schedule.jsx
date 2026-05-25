@@ -10,13 +10,21 @@ import {
   X,
 } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import PremiumCard from "../components/ui/premium-card";
 import { useData } from "../store/DataContext";
 
-function formatTime(timeStr) {
+function formatTime(timeStr, to24Hour = false) {
   if (!timeStr) return "";
+  if (to24Hour) {
+    // Basic conversion from "1:00 PM" to "13:00"
+    const d = new Date(`1/1/2000 ${timeStr}`);
+    return d.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
   const [h, m] = timeStr.split(":");
   const d = new Date();
   d.setHours(parseInt(h, 10), parseInt(m, 10));
@@ -31,40 +39,20 @@ const typeColors = {
 };
 
 export default function Schedule() {
-  const { stats } = useData();
+  const {
+    data,
+    stats,
+    addScheduleSession,
+    deleteScheduleSession,
+    updateScheduleSession,
+  } = useData();
 
   /* ── STATE ── */
-  const [plannedSessions, setPlannedSessions] = useState(() => {
-    const saved = localStorage.getItem("studyai-schedule");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: "1",
-            subject: "Data Structures",
-            startTime: "19:00",
-            endTime: "20:30",
-            type: "Deep Focus",
-            color: "from-violet-500 to-indigo-500",
-          },
-          {
-            id: "2",
-            subject: "DBMS Revision",
-            startTime: "21:00",
-            endTime: "22:00",
-            type: "Revision",
-            color: "from-pink-500 to-rose-500",
-          },
-        ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem("studyai-schedule", JSON.stringify(plannedSessions));
-  }, [plannedSessions]);
+  const plannedSessions = data.schedule || [];
 
   const sortedSessions = useMemo(() => {
     return [...plannedSessions].sort((a, b) =>
-      a.startTime.localeCompare(b.startTime),
+      (a.time || "").localeCompare(b.time || ""),
     );
   }, [plannedSessions]);
 
@@ -72,8 +60,8 @@ export default function Schedule() {
   const [editingId, setEditingId] = useState(null);
   const [sessionInput, setSessionInput] = useState({
     subject: "",
-    startTime: "12:00",
-    endTime: "13:00",
+    startTime: "19:00",
+    endTime: "20:00",
     type: "Deep Focus",
   });
 
@@ -82,8 +70,8 @@ export default function Schedule() {
     setEditingId(null);
     setSessionInput({
       subject: "",
-      startTime: "12:00",
-      endTime: "13:00",
+      startTime: "19:00",
+      endTime: "20:00",
       type: "Deep Focus",
     });
     setIsModalOpen(true);
@@ -91,41 +79,39 @@ export default function Schedule() {
 
   const handleOpenEdit = (session) => {
     setEditingId(session.id);
+    const [startStr, endStr] = (session.time || "7:00 PM - 8:00 PM").split(
+      " - ",
+    );
     setSessionInput({
       subject: session.subject,
-      startTime: session.startTime,
-      endTime: session.endTime,
+      startTime: formatTime(startStr, true),
+      endTime: formatTime(endStr, true),
       type: session.type,
     });
     setIsModalOpen(true);
   };
 
   const handleDelete = (id) => {
-    setPlannedSessions((prev) => prev.filter((s) => s.id !== id));
-    toast.success("Session removed");
+    deleteScheduleSession(id);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!sessionInput.subject.trim()) return;
 
-    const newSession = {
-      id: editingId || Date.now().toString(),
+    const sessionData = {
       subject: sessionInput.subject.trim(),
-      startTime: sessionInput.startTime,
-      endTime: sessionInput.endTime,
+      time: `${formatTime(sessionInput.startTime)} - ${formatTime(
+        sessionInput.endTime,
+      )}`,
       type: sessionInput.type,
       color: typeColors[sessionInput.type] || typeColors["Deep Focus"],
     };
 
     if (editingId) {
-      setPlannedSessions((prev) =>
-        prev.map((s) => (s.id === editingId ? newSession : s)),
-      );
-      toast.success("Session updated");
+      updateScheduleSession(editingId, sessionData);
     } else {
-      setPlannedSessions((prev) => [...prev, newSession]);
-      toast.success("Session scheduled");
+      addScheduleSession({ ...sessionData, date: new Date().toISOString() });
     }
     setIsModalOpen(false);
   };
@@ -148,7 +134,7 @@ export default function Schedule() {
     }
 
     const eveningSessions = plannedSessions.filter(
-      (s) => parseInt(s.startTime.split(":")[0]) >= 18,
+      (s) => parseInt((s.time || "0:0").split(":")[0]) >= 18,
     );
     if (eveningSessions.length > 0) {
       tips.push(
@@ -366,11 +352,7 @@ export default function Schedule() {
                       <h4 className="text-xl font-semibold text-white truncate">
                         {session.subject}
                       </h4>
-
-                      <p className="text-zinc-400 mt-1">
-                        {formatTime(session.startTime)} -{" "}
-                        {formatTime(session.endTime)}
-                      </p>
+                      <p className="text-zinc-400 mt-1">{session.time}</p>
                     </div>
 
                     {/* TYPE */}
