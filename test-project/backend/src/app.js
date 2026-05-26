@@ -5,6 +5,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import authRoutes from "./routes/authRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/tasks", taskRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

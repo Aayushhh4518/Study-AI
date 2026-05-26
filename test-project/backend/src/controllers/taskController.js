@@ -1,93 +1,101 @@
-const Task = require('../models/Task');
+import asyncHandler from "../middlewares/asyncHandler.js";
+import Task from "../models/Task.js";
 
-// @desc Get all tasks
-// @route GET /api/tasks
-// @access Private
-const getTasks = async (req, res) => {
-  try {
-    const tasks = await Task.find({ user: req.user.id });
-    res.json(tasks);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+// @desc    Create Task
+// @route   POST /api/tasks
+// @access  Private
+
+export const createTask = asyncHandler(async (req, res) => {
+  const { title, description, dueDate, priority, subject } = req.body;
+
+  if (!title) {
+    res.status(400);
+    throw new Error("Title is required");
   }
-};
 
-// @desc Create task
-// @route POST /api/tasks
-// @access Private
-const createTask = async (req, res) => {
-  try {
-    const { title, priority } = req.body;
+  const task = await Task.create({
+    user: req.user._id,
+    title,
+    description,
+    dueDate,
+    priority,
+    subject,
+  });
 
-    if (!title) {
-      return res.status(400).json({ message: 'Title is required' });
-    }
+  res.status(201).json({
+    success: true,
+    message: "Task created successfully",
+    data: task,
+  });
+});
 
-    const task = await Task.create({
-      user: req.user.id,
-      title,
-      priority: priority || 'Medium',
-    });
+// @desc    Get All Tasks
+// @route   GET /api/tasks
+// @access  Private
 
-    res.status(201).json(task);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+export const getTasks = asyncHandler(async (req, res) => {
+  const tasks = await Task.find({ user: req.user._id }).sort({
+    createdAt: -1,
+  });
+
+  res.json({
+    success: true,
+    count: tasks.length,
+    data: tasks,
+  });
+});
+
+// @desc    Update Task
+// @route   PUT /api/tasks/:id
+// @access  Private
+
+export const updateTask = asyncHandler(async (req, res) => {
+  const task = await Task.findById(req.params.id);
+
+  if (!task) {
+    res.status(404);
+    throw new Error("Task not found");
   }
-};
 
-// @desc Update task
-// @route PUT /api/tasks/:id
-// @access Private
-const updateTask = async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
-
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
-
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    res.json(updatedTask);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  // Check ownership
+  if (task.user.toString() !== req.user._id.toString()) {
+    res.status(401);
+    throw new Error("Not authorized");
   }
-};
 
-// @desc Delete task
-// @route DELETE /api/tasks/:id
-// @access Private
-const deleteTask = async (req, res) => {
-  try {
-    const task = await Task.findById(req.params.id);
+  const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
 
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
+  res.json({
+    success: true,
+    message: "Task updated successfully",
+    data: updatedTask,
+  });
+});
 
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'Not authorized' });
-    }
+// @desc    Delete Task
+// @route   DELETE /api/tasks/:id
+// @access  Private
 
-    await task.deleteOne();
+export const deleteTask = asyncHandler(async (req, res) => {
+  const task = await Task.findById(req.params.id);
 
-    res.json({ message: 'Task removed' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!task) {
+    res.status(404);
+    throw new Error("Task not found");
   }
-};
 
-module.exports = {
-  getTasks,
-  createTask,
-  updateTask,
-  deleteTask,
-};
+  // Check ownership
+  if (task.user.toString() !== req.user._id.toString()) {
+    res.status(401);
+    throw new Error("Not authorized");
+  }
+
+  await task.deleteOne();
+
+  res.json({
+    success: true,
+    message: "Task deleted successfully",
+  });
+});
