@@ -1,26 +1,50 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
-const subjectSchema = mongoose.Schema(
+const subjectSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
-      ref: 'User',
     },
 
     name: {
       type: String,
       required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      default: "",
     },
 
     color: {
       type: String,
-      default: 'blue',
+      default: "#3B82F6",
     },
+
+    studyHours: {
+      type: Number,
+      default: 0,
+    },
+
+    progress: {
+      type: Number,
+      default: 0,
+    },
+
+    weakAreas: [
+      {
+        type: String,
+      },
+    ],
   },
   {
     timestamps: true,
   }
 );
 
-module.exports = mongoose.model('Subject', subjectSchema);
+const Subject = mongoose.model("Subject", subjectSchema);
+
+export default Subject;
