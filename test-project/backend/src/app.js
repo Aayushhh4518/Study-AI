@@ -1,3 +1,8 @@
+import {
+  notFound,
+  errorHandler,
+} from "./middlewares/errorMiddleware.js";
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -29,5 +34,9 @@ app.get("/", (req, res) => {
     message: "StudyAI Backend Running",
   });
 });
+
+// Error Middleware
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
