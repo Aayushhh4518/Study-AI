@@ -11,6 +11,12 @@ import {
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
 import {
+  createSubjectApi,
+  deleteSubjectApi,
+  fetchSubjects,
+  updateSubjectApi,
+} from "../api/subjectApi";
+import {
   createTaskApi,
   deleteTaskApi,
   fetchTasks,
@@ -20,14 +26,24 @@ import {
 const mapBackendTaskToFrontend = (backendTask) => {
   if (!backendTask) return null;
   return {
+    ...backendTask,
     id: backendTask._id,
-    title: backendTask.title,
-    priority: backendTask.priority,
-    completed: backendTask.completed,
-    subject: backendTask.subject,
-    due: backendTask.dueDate,
-    createdAt: backendTask.createdAt,
+    due: backendTask.dueDate || backendTask.due,
     color: PRIORITY_COLOR[backendTask.priority] || "bg-zinc-500",
+  };
+};
+
+const mapBackendSubjectToFrontend = (s) => {
+  if (!s) return null;
+  return {
+    ...s,
+    id: s._id,
+    title: s.name || s.title,
+    color: s.color || "bg-indigo-500",
+    progress: s.progress || 0,
+    hoursStudied: s.studyHours || s.hoursStudied || 0,
+    targetHours: s.targetHours || 30,
+    lastStudied: s.updatedAt || s.createdAt || nowISO(),
   };
 };
 
@@ -42,6 +58,7 @@ export const A = {
   TASK_EDIT: "TASK_EDIT",
   TASK_REORDER: "TASK_REORDER",
 
+  SUBJECTS_SET: "SUBJECTS_SET",
   SUBJECT_ADD: "SUBJECT_ADD",
   SUBJECT_DELETE: "SUBJECT_DELETE",
   SUBJECT_UPDATE: "SUBJECT_UPDATE",
@@ -386,22 +403,13 @@ function reducer(state, { type, payload }) {
       return { ...state, tasks: payload };
 
     /* ── SUBJECTS ── */
+    case A.SUBJECTS_SET:
+      return { ...state, subjects: payload };
+
     case A.SUBJECT_ADD:
       return {
         ...state,
-        subjects: [
-          ...state.subjects,
-          {
-            id: uuidv4(),
-            progress: 0,
-            hoursStudied: 0,
-            targetHours: 30,
-            lastStudied: nowISO(),
-            color:
-              SUBJECT_COLORS[state.subjects.length % SUBJECT_COLORS.length],
-            ...payload,
-          },
-        ],
+        subjects: [...state.subjects, payload],
       };
 
     case A.SUBJECT_DELETE:
@@ -616,6 +624,7 @@ function loadState() {
       },
       notifications: saved.notifications ?? INITIAL_STATE.notifications,
       tasks: [], // Tasks are now fetched from backend, not localStorage
+      subjects: [], // Subjects are now fetched from backend, not localStorage
       schedule: saved.schedule ?? INITIAL_STATE.schedule,
       searchQuery: "", // transient — never restore
     };
@@ -924,16 +933,27 @@ export function DataProvider({ children }) {
 
   /* ── Fetch initial tasks from backend ── */
   useEffect(() => {
-    async function loadTasks() {
+    async function loadInitialData() {
       try {
-        const response = await fetchTasks();
-        const frontendTasks = response.data.map(mapBackendTaskToFrontend);
-        dispatch({ type: A.TASKS_SET, payload: frontendTasks });
+        const [tasksRes, subjectsRes] = await Promise.all([
+          fetchTasks(),
+          fetchSubjects(),
+        ]);
+
+        // Safely extract arrays from response variations
+        const rawTasks = tasksRes.data?.data || tasksRes.data || [];
+        const rawSubjects = subjectsRes.data?.data || subjectsRes.data || [];
+
+        const normalizedTasks = rawTasks.map(mapBackendTaskToFrontend);
+        const normalizedSubjects = rawSubjects.map(mapBackendSubjectToFrontend);
+
+        dispatch({ type: A.TASKS_SET, payload: normalizedTasks });
+        dispatch({ type: A.SUBJECTS_SET, payload: normalizedSubjects });
       } catch {
-        toast.error("Failed to load tasks.");
+        toast.error("Failed to load application data.");
       }
     }
-    loadTasks();
+    loadInitialData();
   }, []);
 
   /* ── Theme sync ── */
@@ -1040,7 +1060,8 @@ export function DataProvider({ children }) {
     async (taskData) => {
       try {
         const response = await createTaskApi(taskData);
-        const newFrontendTask = mapBackendTaskToFrontend(response.data);
+        const rawTask = response.data?.data || response.data;
+        const newFrontendTask = mapBackendTaskToFrontend(rawTask);
         dispatch({ type: A.TASK_ADD, payload: newFrontendTask });
         notify("Task added!");
       } catch (error) {
@@ -1117,7 +1138,8 @@ export function DataProvider({ children }) {
     async (id, updates) => {
       try {
         const response = await updateTaskApi(id, updates);
-        const updatedFrontendTask = mapBackendTaskToFrontend(response.data);
+        const rawTask = response.data?.data || response.data;
+        const updatedFrontendTask = mapBackendTaskToFrontend(rawTask);
         dispatch({
           type: A.TASK_EDIT,
           payload: { id, updates: updatedFrontendTask },
@@ -1136,19 +1158,47 @@ export function DataProvider({ children }) {
 
   /* Subjects */
   const addSubject = useCallback(
-    (s) => {
-      dispatch({ type: A.SUBJECT_ADD, payload: s });
-      notify("Subject added!");
+    async (subjectData) => {
+      try {
+        const response = await createSubjectApi(subjectData);
+        const rawSub = response.data?.data || response.data;
+        const newSubject = mapBackendSubjectToFrontend(rawSub);
+        dispatch({ type: A.SUBJECT_ADD, payload: newSubject });
+        notify("Subject added!");
+      } catch (error) {
+        toast.error("Failed to add subject.");
+      }
     },
     [notify],
   );
-  const deleteSubject = useCallback((id) => {
-    dispatch({ type: A.SUBJECT_DELETE, payload: id });
-  }, []);
+
+  const deleteSubject = useCallback(
+    async (id) => {
+      try {
+        await deleteSubjectApi(id);
+        dispatch({ type: A.SUBJECT_DELETE, payload: id });
+        notify("Subject removed.", "success");
+      } catch (error) {
+        toast.error("Failed to delete subject.");
+      }
+    },
+    [notify],
+  );
+
   const updateSubject = useCallback(
-    (id, updates) => {
-      dispatch({ type: A.SUBJECT_UPDATE, payload: { id, updates } });
-      notify("Subject updated.");
+    async (id, updates) => {
+      try {
+        const response = await updateSubjectApi(id, updates);
+        const rawSub = response.data?.data || response.data;
+        const updatedSubject = mapBackendSubjectToFrontend(rawSub);
+        dispatch({
+          type: A.SUBJECT_UPDATE,
+          payload: { id, updates: updatedSubject },
+        });
+        notify("Subject updated.");
+      } catch (error) {
+        toast.error("Failed to update subject.");
+      }
     },
     [notify],
   );
