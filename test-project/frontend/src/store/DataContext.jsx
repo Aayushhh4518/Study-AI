@@ -10,11 +10,32 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { v4 as uuidv4 } from "uuid";
+import {
+  createTaskApi,
+  deleteTaskApi,
+  fetchTasks,
+  updateTaskApi,
+} from "../api/taskApi";
+
+const mapBackendTaskToFrontend = (backendTask) => {
+  if (!backendTask) return null;
+  return {
+    id: backendTask._id,
+    title: backendTask.title,
+    priority: backendTask.priority,
+    completed: backendTask.completed,
+    subject: backendTask.subject,
+    due: backendTask.dueDate,
+    createdAt: backendTask.createdAt,
+    color: PRIORITY_COLOR[backendTask.priority] || "bg-zinc-500",
+  };
+};
 
 /* ═══════════════════════════════════════════════════════════════
    ACTION CONSTANTS
 ═══════════════════════════════════════════════════════════════ */
 export const A = {
+  TASKS_SET: "TASKS_SET",
   TASK_ADD: "TASK_ADD",
   TASK_DELETE: "TASK_DELETE",
   TASK_TOGGLE: "TASK_TOGGLE",
@@ -136,52 +157,7 @@ function buildInitialState() {
     },
 
     /* ── tasks ── */
-    tasks: [
-      {
-        id: "t1",
-        title: "Complete Physics Lab Report",
-        due: "Today, 11:59 PM",
-        priority: "High",
-        color: "bg-rose-500",
-        completed: false,
-        subject: "Physics",
-        pinned: false,
-        createdAt: t,
-      },
-      {
-        id: "t2",
-        title: "Read Chapter 4: Data Structures",
-        due: "Tomorrow, 9:00 AM",
-        priority: "Medium",
-        color: "bg-amber-500",
-        completed: false,
-        subject: "Computer Science",
-        pinned: false,
-        createdAt: daysAgo(1),
-      },
-      {
-        id: "t3",
-        title: "Solve 10 Calculus Problems",
-        due: "Today, 6:00 PM",
-        priority: "High",
-        color: "bg-rose-500",
-        completed: true,
-        subject: "Mathematics",
-        pinned: false,
-        createdAt: t,
-      },
-      {
-        id: "t4",
-        title: "Review DBMS Normalization Notes",
-        due: "In 2 days",
-        priority: "Low",
-        color: "bg-sky-500",
-        completed: false,
-        subject: "Database Systems",
-        pinned: false,
-        createdAt: daysAgo(2),
-      },
-    ],
+    tasks: [],
 
     /* ── subjects ── */
     subjects: [
@@ -367,20 +343,13 @@ const INITIAL_STATE = buildInitialState();
 function reducer(state, { type, payload }) {
   switch (type) {
     /* ── TASKS ── */
+    case A.TASKS_SET:
+      return { ...state, tasks: payload };
+
     case A.TASK_ADD:
       return {
         ...state,
-        tasks: [
-          {
-            id: uuidv4(),
-            completed: false,
-            pinned: false,
-            createdAt: nowISO(),
-            color: PRIORITY_COLOR[payload.priority] ?? "bg-sky-500",
-            ...payload,
-          },
-          ...state.tasks,
-        ],
+        tasks: [payload, ...state.tasks],
       };
 
     case A.TASK_DELETE:
@@ -646,6 +615,7 @@ function loadState() {
         isRunning: false, // never restore a running timer
       },
       notifications: saved.notifications ?? INITIAL_STATE.notifications,
+      tasks: [], // Tasks are now fetched from backend, not localStorage
       schedule: saved.schedule ?? INITIAL_STATE.schedule,
       searchQuery: "", // transient — never restore
     };
@@ -952,6 +922,20 @@ export function DataProvider({ children }) {
     return () => clearTimeout(saveTimer.current);
   }, [state]);
 
+  /* ── Fetch initial tasks from backend ── */
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const response = await fetchTasks();
+        const frontendTasks = response.data.map(mapBackendTaskToFrontend);
+        dispatch({ type: A.TASKS_SET, payload: frontendTasks });
+      } catch {
+        toast.error("Failed to load tasks.");
+      }
+    }
+    loadTasks();
+  }, []);
+
   /* ── Theme sync ── */
   useEffect(() => {
     const html = document.documentElement;
@@ -1053,60 +1037,95 @@ export function DataProvider({ children }) {
 
   /* Tasks */
   const addTask = useCallback(
-    (t) => {
-      dispatch({ type: A.TASK_ADD, payload: t });
-      notify("Task added!");
+    async (taskData) => {
+      try {
+        const response = await createTaskApi(taskData);
+        const newFrontendTask = mapBackendTaskToFrontend(response.data);
+        dispatch({ type: A.TASK_ADD, payload: newFrontendTask });
+        notify("Task added!");
+      } catch (error) {
+        toast.error("Failed to add task.");
+      }
     },
     [notify],
   );
 
   const deleteTask = useCallback(
-    (id) => {
-      dispatch({ type: A.TASK_DELETE, payload: id });
-      notify("Task removed.", "success");
+    async (id) => {
+      try {
+        await deleteTaskApi(id);
+        dispatch({ type: A.TASK_DELETE, payload: id });
+        notify("Task removed.", "success");
+      } catch (error) {
+        toast.error("Failed to delete task.");
+      }
     },
     [notify],
   );
 
   const toggleTask = useCallback(
-    (id) => {
+    async (id) => {
       const task = state.tasks.find((t) => t.id === id);
-      dispatch({ type: A.TASK_TOGGLE, payload: id });
+      if (!task) return;
 
-      if (task && !task.completed) {
-        playSound();
-        notify("Task complete! 🎉", "success");
+      try {
+        // Optimistic UI update
+        dispatch({ type: A.TASK_TOGGLE, payload: id });
+        await updateTaskApi(id, { completed: !task.completed });
 
-        dispatch({
-          type: A.NOTIFICATION_ADD,
-          payload: {
-            title: "Task Completed",
-            message: task.title,
-            type: "success",
-          },
-        });
+        if (!task.completed) {
+          playSound();
+          notify("Task complete! 🎉", "success");
 
-        const completed = state.tasks.filter((t) => t.completed).length + 1;
-        if (completed % 5 === 0 && state.settings.motivationalAlerts) {
-          notify(`Amazing! ${completed} tasks completed! 🔥`, "custom", "🔥");
           dispatch({
             type: A.NOTIFICATION_ADD,
             payload: {
-              title: "Milestone Reached",
-              message: `${completed} tasks completed. You're unstoppable!`,
-              type: "info",
+              title: "Task Completed",
+              message: task.title,
+              type: "success",
             },
           });
+
+          const completedCount =
+            state.tasks.filter((t) => t.completed).length + 1;
+          if (completedCount % 5 === 0 && state.settings.motivationalAlerts) {
+            notify(
+              `Amazing! ${completedCount} tasks completed! 🔥`,
+              "custom",
+              "🔥",
+            );
+            dispatch({
+              type: A.NOTIFICATION_ADD,
+              payload: {
+                title: "Milestone Reached",
+                message: `${completedCount} tasks completed. You're unstoppable!`,
+                type: "info",
+              },
+            });
+          }
         }
+      } catch (error) {
+        // Revert optimistic update on failure
+        dispatch({ type: A.TASK_TOGGLE, payload: id });
+        toast.error("Failed to update task status.");
       }
     },
     [state.tasks, state.settings.motivationalAlerts, notify, playSound],
   );
 
   const editTask = useCallback(
-    (id, updates) => {
-      dispatch({ type: A.TASK_EDIT, payload: { id, updates } });
-      notify("Task updated.");
+    async (id, updates) => {
+      try {
+        const response = await updateTaskApi(id, updates);
+        const updatedFrontendTask = mapBackendTaskToFrontend(response.data);
+        dispatch({
+          type: A.TASK_EDIT,
+          payload: { id, updates: updatedFrontendTask },
+        });
+        notify("Task updated.");
+      } catch (error) {
+        toast.error("Failed to edit task.");
+      }
     },
     [notify],
   );
