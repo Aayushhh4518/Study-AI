@@ -1,51 +1,86 @@
-const Session = require('../models/Session');
-const Task = require('../models/Task');
-const Subject = require('../models/Subject');
+import Task from "../models/Task.js";
+import Subject from "../models/Subject.js";
+import asyncHandler from "../middlewares/asyncHandler.js";
 
-/**
- * @desc    Get dashboard analytics
- * @route   GET /api/analytics
- * @access  Private
- */
-const getAnalytics = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
+// @desc    Get Analytics
+// @route   GET /api/analytics
+// @access  Private
 
-    // Aggregate Focus Sessions
-    const totalSessions = await Session.countDocuments({ user: userId, mode: 'work' });
-    const sessionDocs = await Session.find({ user: userId, mode: 'work' });
-    const totalFocusMinutes = sessionDocs.reduce((acc, curr) => acc + curr.duration, 0);
+export const getAnalytics = asyncHandler(async (req, res) => {
+  // User Tasks
+  const tasks = await Task.find({
+    user: req.user._id,
+  });
 
-    // Aggregate Tasks
-    const totalTasks = await Task.countDocuments({ user: userId });
-    const completedTasks = await Task.countDocuments({ user: userId, completed: true });
-    const activeTasksCount = totalTasks - completedTasks;
-    const taskCompletionRate = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+  // User Subjects
+  const subjects = await Subject.find({
+    user: req.user._id,
+  });
 
-    // Subjects Count
-    const subjectsCount = await Subject.countDocuments({ user: userId });
+  // Task Analytics
+  const totalTasks = tasks.length;
 
-    res.status(200).json({
-      focus: {
-        totalSessions,
-        totalFocusMinutes,
-        avgSessionMinutes: totalSessions > 0 ? Math.round(totalFocusMinutes / totalSessions) : 0,
-      },
-      tasks: {
+  const completedTasks = tasks.filter(
+    (task) => task.completed
+  ).length;
+
+  const pendingTasks = totalTasks - completedTasks;
+
+  const completionRate =
+    totalTasks > 0
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
+
+  // Subject Analytics
+  const totalSubjects = subjects.length;
+
+  const totalStudyHours = subjects.reduce(
+    (acc, subject) => acc + subject.studyHours,
+    0
+  );
+
+  const averageProgress =
+    totalSubjects > 0
+      ? Math.round(
+          subjects.reduce(
+            (acc, subject) => acc + subject.progress,
+            0
+          ) / totalSubjects
+        )
+      : 0;
+
+  // Weak Subjects
+  const weakSubjects = subjects
+    .filter((subject) => subject.progress < 50)
+    .map((subject) => ({
+      name: subject.name,
+      progress: subject.progress,
+    }));
+
+  // Productivity Score
+  const productivityScore = Math.round(
+    (completionRate + averageProgress) / 2
+  );
+
+  res.json({
+    success: true,
+
+    data: {
+      taskAnalytics: {
         totalTasks,
         completedTasks,
-        activeTasksCount,
-        taskCompletionRate,
+        pendingTasks,
+        completionRate,
       },
-      subjects: {
-        total: subjectsCount,
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
-module.exports = {
-  getAnalytics,
-};
+      subjectAnalytics: {
+        totalSubjects,
+        totalStudyHours,
+        averageProgress,
+        weakSubjects,
+      },
+
+      productivityScore,
+    },
+  });
+});
