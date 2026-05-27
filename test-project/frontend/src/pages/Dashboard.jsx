@@ -1,12 +1,15 @@
 import { animate, motion } from "framer-motion";
 import {
-  ArrowUpRight,
   BookOpen,
   BrainCircuit,
+  CalendarDays,
   CheckCircle2,
   Clock3,
+  Flame,
+  Plus,
   Sparkles,
   TrendingUp,
+  Wand2,
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
@@ -180,6 +183,22 @@ export default function Dashboard() {
     return max && max.focus > 0 ? max.day : "N/A";
   }, [weeklyChartData]);
 
+  const dailySummary = useMemo(() => {
+    const pending = contextStats?.pendingTasks || 0;
+    const activeSub = contextStats?.activeSubjects || 0;
+    if (pending === 0 && contextStats?.completedTasks > 0)
+      return "You're all caught up! Incredible work. Consider reviewing past notes or starting a new subject to keep the momentum going.";
+    if (pending === 0)
+      return "Ready to conquer the day? Set up a new task or start a focus session to build your streak.";
+    return `Today you should focus on your ${activeSub} active subject${activeSub !== 1 ? "s" : ""} and complete ${pending} pending task${pending !== 1 ? "s" : ""} to maintain your ${contextStats?.streak || 0}-day streak.`;
+  }, [contextStats]);
+
+  const bestStreak = contextStats?.longestStreak || contextStats?.streak || 0;
+  const consistencyPct =
+    bestStreak > 0
+      ? Math.round(((contextStats?.streak || 0) / bestStreak) * 100)
+      : 0;
+
   const aiSuggestion = useMemo(() => {
     if (!contextAiInsights || !contextAiInsights.length)
       return "Keep up the good work!";
@@ -189,20 +208,60 @@ export default function Dashboard() {
     return rec ? rec.title : "Maintain your focus rhythm";
   }, [contextAiInsights]);
 
+  const quickActions = [
+    {
+      label: "Add Task",
+      icon: Plus,
+      path: "/tasks",
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10 border-emerald-500/20",
+    },
+    {
+      label: "Start Focus",
+      icon: Zap,
+      path: "/focus",
+      color: "text-amber-400",
+      bg: "bg-amber-500/10 border-amber-500/20",
+    },
+    {
+      label: "New Subject",
+      icon: BookOpen,
+      path: "/subjects",
+      color: "text-cyan-400",
+      bg: "bg-cyan-500/10 border-cyan-500/20",
+    },
+    {
+      label: "AI Plan Day",
+      icon: Wand2,
+      path: "/schedule",
+      color: "text-violet-400",
+      bg: "bg-violet-500/10 border-violet-500/20",
+    },
+  ];
+
   return (
     <motion.div
       variants={fadeUp}
       initial="hidden"
       animate="show"
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="space-y-6 pb-4"
+      className="space-y-6 pb-4 relative"
     >
+      {/* Ambient background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-violet-600/10 blur-[120px] pointer-events-none rounded-full opacity-50" />
+
       {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-            Overview
-          </h1>
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-2">
+        <div className="pt-2">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none bg-gradient-to-r from-indigo-200 via-white to-white/70 bg-clip-text text-transparent drop-shadow-sm">
+              Overview
+            </h1>
+          </motion.div>
           <p className="text-zinc-500 mt-2 text-[13px] font-medium">
             Performance metrics and insights for today
           </p>
@@ -228,6 +287,56 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── AI DAILY SUMMARY ── */}
+      <motion.div
+        variants={fadeUp}
+        className="relative z-10 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl shadow-lg"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/10 blur-[80px] pointer-events-none" />
+        <div className="relative z-10 flex items-start sm:items-center gap-4">
+          <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-white/10 flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+            <Sparkles size={18} className="text-violet-300 drop-shadow-md" />
+          </div>
+          <div>
+            <h3 className="text-[14px] font-semibold text-zinc-100 tracking-wide">
+              AI Daily Summary
+            </h3>
+            <p className="text-[13px] text-zinc-400 mt-1 leading-relaxed">
+              {dailySummary}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── QUICK ACTIONS ── */}
+      <motion.div
+        variants={staggerGrid}
+        className="relative z-10 flex flex-wrap items-center gap-3"
+      >
+        {quickActions.map((action) => (
+          <motion.button
+            key={action.label}
+            variants={fadeUp}
+            whileHover={{ scale: 1.03, y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate(action.path)}
+            className={`
+              flex items-center gap-2 px-4 py-2.5 rounded-xl border bg-white/[0.02] backdrop-blur-md
+              hover:bg-white/[0.06] transition-all duration-300 shadow-sm hover:shadow-md
+            `}
+          >
+            <div
+              className={`h-6 w-6 rounded-md flex items-center justify-center border ${action.bg} ${action.color}`}
+            >
+              <action.icon size={12} strokeWidth={2.5} />
+            </div>
+            <span className="text-[12px] font-semibold text-zinc-200 tracking-wide">
+              {action.label}
+            </span>
+          </motion.button>
+        ))}
+      </motion.div>
+
       {/* ── STATS GRID ── */}
       <motion.div
         variants={staggerGrid}
@@ -243,7 +352,7 @@ export default function Dashboard() {
               variants={fadeUp}
               transition={{ duration: 0.32 }}
             >
-              <PremiumCard className="group relative overflow-hidden p-5 cursor-default hover:bg-white/[0.04] hover:border-white/[0.1] hover:shadow-[0_4px_24px_rgba(0,0,0,0.2)] transition-all duration-300">
+              <PremiumCard className="group relative overflow-hidden p-5 cursor-default hover:bg-white/[0.04] hover:border-white/[0.12] hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:-translate-y-1 transition-all duration-300">
                 {/* Subtle corner ambient glow */}
                 <div
                   className={`absolute -top-10 -right-10 h-32 w-32 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br ${stat.from} ${stat.to}`}
@@ -341,44 +450,96 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* mini stats row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-              {miniStats.map((m) => (
-                <div
-                  key={m.label}
-                  className="
-                  rounded-xl border border-white/[0.04]
-                  bg-[#0A0E1A] px-4 py-3 shadow-sm
-                "
-                >
-                  <p className="text-[10px] uppercase tracking-[0.15em] font-semibold text-zinc-500">
-                    {m.label}
-                  </p>
-                  <h4 className="text-xl font-bold text-zinc-100 mt-1 tracking-tight">
-                    {m.value}
-                  </h4>
-                  <p className="text-[11px] text-zinc-500 mt-1 font-medium">
-                    {m.sub}
-                  </p>
-                </div>
-              ))}
-            </div>
-
             {/* chart */}
             <div
               className="
-              flex-1 min-h-[240px]
+              flex-1 min-h-[260px] mb-5
               rounded-xl border border-white/[0.04]
               bg-gradient-to-b from-[#0A0E1A] to-transparent
               p-4 relative overflow-hidden shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]
             "
             >
-              <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-28 w-72 bg-violet-500/[0.05] blur-[80px]" />
+              <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-32 w-full bg-violet-500/[0.08] blur-[80px]" />
               <ProductivityChart />
             </div>
 
-            {/* bottom insight row */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
+            {/* Bottom Section: Heatmap & Streak */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Productivity Heatmap */}
+              <div className="rounded-xl border border-white/[0.04] bg-[#0A0E1A] p-4 shadow-sm relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] uppercase tracking-[0.15em] font-semibold text-zinc-500">
+                    Focus Intensity
+                  </p>
+                  <CalendarDays
+                    size={14}
+                    className="text-zinc-600 group-hover:text-cyan-400 transition-colors"
+                  />
+                </div>
+                <div className="flex items-end gap-1.5 h-16 mt-3 relative z-10">
+                  {weeklyChartData?.slice(-7).map((d, i) => (
+                    <div
+                      key={i}
+                      className="flex-1 flex flex-col items-center gap-1.5"
+                    >
+                      <div className="w-full bg-white/[0.03] rounded-t-md relative h-full overflow-hidden border-b border-white/5 group-hover:border-cyan-500/20 transition-colors">
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{
+                            height: `${Math.max(5, Math.min(100, ((d.focus || 0) / 4) * 100))}%`,
+                          }}
+                          transition={{
+                            duration: 1,
+                            delay: i * 0.1,
+                            ease: "easeOut",
+                          }}
+                          className="absolute bottom-0 w-full bg-gradient-to-t from-cyan-500/80 to-blue-400/80 rounded-t-sm"
+                        />
+                      </div>
+                      <span className="text-[9px] text-zinc-500 font-bold">
+                        {d.day.charAt(0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Smart Streak */}
+              <div className="rounded-xl border border-white/[0.04] bg-[#0A0E1A] p-4 shadow-sm relative overflow-hidden group hover:border-orange-500/20 transition-colors">
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-orange-500/10 blur-[40px] group-hover:bg-orange-500/20 transition-colors" />
+                <div className="flex items-center justify-between mb-3 relative z-10">
+                  <p className="text-[11px] uppercase tracking-[0.15em] font-semibold text-zinc-500">
+                    Consistency
+                  </p>
+                  <Flame size={14} className="text-orange-500 animate-pulse" />
+                </div>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <h4 className="text-3xl font-bold text-zinc-100 tracking-tight">
+                    {contextStats?.streak || 0}
+                  </h4>
+                  <span className="text-[12px] text-zinc-500 font-medium">
+                    days
+                  </span>
+                </div>
+                <div className="mt-3 relative z-10">
+                  <div className="flex justify-between text-[10px] font-semibold text-zinc-500 mb-1.5">
+                    <span>Progress to best</span>
+                    <span className="text-orange-400">{consistencyPct}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/[0.05] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${consistencyPct}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* old bottom insight row - removing in favor of the new heatmap/streak */}
+            {/* <div className="grid grid-cols-2 gap-3 mt-4">
               {[
                 { label: "Peak Productivity Day", value: peakFocusDay },
                 { label: "AI Suggestion", value: aiSuggestion },
@@ -408,7 +569,7 @@ export default function Dashboard() {
                   />
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         </PremiumCard>
 
@@ -446,14 +607,14 @@ export default function Dashboard() {
               return (
                 <motion.div
                   key={item.title}
-                  initial={{ opacity: 0, x: 14 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.15 + i * 0.08, duration: 0.28 }}
+                  transition={{ delay: 0.15 + i * 0.08, duration: 0.3 }}
                   className="
                     group relative
                     rounded-xl border border-white/[0.04]
-                    bg-[#0A0E1A] p-4
-                    hover:bg-white/[0.04] hover:border-white/[0.1]
+                    bg-white/[0.01] p-4 backdrop-blur-md
+                    hover:bg-white/[0.03] hover:border-white/[0.15] hover:-translate-y-0.5
                     transition-all duration-200 cursor-default
                     overflow-hidden shadow-sm hover:shadow-md
                   "
@@ -467,7 +628,7 @@ export default function Dashboard() {
                       className={`
                       h-8 w-8 flex-shrink-0 rounded-lg
                       flex items-center justify-center
-                      border transition-colors duration-200
+                      border border-white/5 shadow-sm transition-colors duration-200
                       ${colors.icon}
                     `}
                     >
@@ -487,7 +648,7 @@ export default function Dashboard() {
                           {item.tag}
                         </span>
                       </div>
-                      <p className="text-[12px] text-zinc-500 mt-2 leading-relaxed font-medium">
+                      <p className="text-[12px] text-zinc-400 mt-2 leading-relaxed font-medium">
                         {item.desc}
                       </p>
                     </div>

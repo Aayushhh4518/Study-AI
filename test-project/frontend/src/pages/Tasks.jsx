@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BookOpen,
+  Brain,
   BrainCircuit,
   Calendar,
   Check,
@@ -11,6 +12,7 @@ import {
   Plus,
   Search,
   Trash2,
+  TrendingUp,
   X,
   Zap,
 } from "lucide-react";
@@ -50,6 +52,7 @@ export default function Tasks() {
     };
     const taskData = {
       title: formData.title.trim(),
+      name: formData.title.trim(),
       due: formData.due || "No Due Date",
       priority: formData.priority,
       subject: formData.subject,
@@ -127,6 +130,13 @@ export default function Tasks() {
     return insights.slice(0, 2);
   }, [tasks, stats.pendingTasks]);
 
+  const completionPercentage = useMemo(() => {
+    if (!stats.totalTasks || stats.totalTasks === 0) {
+      return 0;
+    }
+    return Math.round((stats.completedTasks / stats.totalTasks) * 100);
+  }, [stats.completedTasks, stats.totalTasks]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -138,7 +148,7 @@ export default function Tasks() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1
-            className="
+            className=" //prettier-ignore
               text-4xl md:text-5xl
               font-black
               tracking-tight
@@ -165,6 +175,32 @@ export default function Tasks() {
           New Task
         </button>
       </div>
+
+      {/* PROGRESS BAR */}
+      <PremiumCard className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-semibold text-zinc-300">
+            Overall Progress
+          </p>
+          <p className="text-sm font-bold text-white">
+            {completionPercentage}%
+          </p>
+        </div>
+        <div className="h-2.5 w-full rounded-full bg-white/[0.05] overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${completionPercentage}%` }}
+            transition={{ duration: 1, ease: [0.2, 0.8, 0.2, 1] }}
+            className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-500 shadow-[0_0_10px_rgba(79,70,229,0.5)]"
+          />
+        </div>
+        <div className="flex items-center gap-2 text-xs text-zinc-500 mt-2">
+          <TrendingUp size={14} className="text-emerald-500" />
+          <span>
+            {stats.completedTasks} tasks completed, {stats.pendingTasks} to go.
+          </span>
+        </div>
+      </PremiumCard>
 
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -251,7 +287,7 @@ export default function Tasks() {
       {/* TOOLBAR */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
         {/* Search */}
-        <div className="relative w-full md:max-w-md">
+        <div className="relative w-full md:max-w-xs">
           <Search
             size={16}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"
@@ -265,18 +301,25 @@ export default function Tasks() {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-2 p-1 bg-[#0A0E1A] border border-white/10 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar shadow-sm">
+        <div className="relative flex items-center gap-2 p-1 bg-[#0A0E1A] border border-white/10 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar shadow-sm">
           {["All", "Active", "Completed"].map((tab) => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
-              className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`relative z-10 flex-1 md:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors duration-300 ${
                 statusFilter === tab
-                  ? "bg-violet-500/20 text-violet-300 border border-violet-500/30 shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+                  ? "text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               {tab}
+              {statusFilter === tab && (
+                <motion.div
+                  layoutId="taskFilterPill"
+                  className="absolute inset-0 bg-white/[0.06] border border-white/10 rounded-lg shadow-sm"
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                />
+              )}
             </button>
           ))}
         </div>
@@ -291,14 +334,20 @@ export default function Tasks() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="py-16 text-center flex flex-col items-center border border-white/[0.05] rounded-3xl bg-white/[0.01]"
+              className="py-16 text-center flex flex-col items-center border border-dashed border-white/[0.08] rounded-3xl bg-white/[0.01]"
             >
-              <div className="h-16 w-16 bg-white/[0.03] rounded-full flex items-center justify-center mb-4">
-                <CheckCircle2 className="text-zinc-600" size={28} />
-              </div>
-              <h3 className="text-lg font-semibold text-white">
-                No tasks found
-              </h3>
+              <motion.div
+                animate={{ y: [-2, 2, -2] }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 3,
+                  ease: "easeInOut",
+                }}
+                className="h-16 w-16 bg-white/[0.03] rounded-full flex items-center justify-center mb-4"
+              >
+                <Brain className="text-zinc-600" size={28} />
+              </motion.div>
+              <h3 className="text-lg font-semibold text-white">All Clear!</h3>
               <p className="text-zinc-500 mt-2 text-sm max-w-sm">
                 You're all caught up! Enjoy your free time or create a new task.
               </p>
@@ -311,14 +360,28 @@ export default function Tasks() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 layout
+                transition={{ type: "spring", stiffness: 400, damping: 40 }}
               >
-                <PremiumCard className="p-4 sm:p-5 group">
+                <div
+                  className={`
+                    group relative p-4 sm:p-5 rounded-2xl border bg-white/[0.02]
+                    transition-all duration-300 ease-in-out
+                    hover:-translate-y-1 hover:bg-white/[0.04]
+                    ${
+                      task.completed
+                        ? "border-emerald-500/10"
+                        : task.priority === "High"
+                          ? "hover:border-rose-500/30"
+                          : "border-white/10 hover:border-violet-500/30"
+                    }
+                  `}
+                >
                   <div className="flex items-start sm:items-center justify-between gap-4">
                     <div className="flex items-start sm:items-center gap-4">
                       {/* Checkbox (Linear Style) */}
                       <button
                         onClick={() => toggleTask(task.id)}
-                        className={`mt-0.5 sm:mt-0 h-[22px] w-[22px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                        className={`relative mt-0.5 sm:mt-0 h-[22px] w-[22px] shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                           task.completed
                             ? "bg-emerald-500 border-emerald-500"
                             : "border-zinc-600 hover:border-violet-500"
@@ -326,17 +389,27 @@ export default function Tasks() {
                       >
                         <AnimatePresence>
                           {task.completed && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              exit={{ scale: 0 }}
-                            >
-                              <Check
-                                size={12}
-                                className="text-white"
-                                strokeWidth={4}
+                            <>
+                              <motion.div // Line 409
+                                key="glow"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.7)]" // Line 410
                               />
-                            </motion.div>
+                              <motion.div // Line 411
+                                key="check"
+                                initial={{ scale: 0, rotate: -45 }}
+                                animate={{ scale: 1, rotate: 0 }} // Line 412
+                                exit={{ scale: 0, rotate: 45 }}
+                              >
+                                <Check
+                                  size={12}
+                                  className="text-white"
+                                  strokeWidth={4}
+                                />
+                              </motion.div>
+                            </>
                           )}
                         </AnimatePresence>
                       </button>
@@ -396,13 +469,13 @@ export default function Tasks() {
                       </button>
                       <button
                         onClick={() => handleDelete(task.id)}
-                        className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+                        className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
-                </PremiumCard>
+                </div>
               </motion.div>
             ))
           )}
@@ -446,7 +519,7 @@ function TaskModal({ mode, task, subjects, onClose, onSubmit }) {
         title: "",
         due: "",
         priority: "Medium",
-        subject: subjects.length > 0 ? subjects[0].title : "",
+        subject: subjects.length > 0 ? subjects[0].name : "",
       });
     }
   }, [mode, task, subjects]);
@@ -547,8 +620,8 @@ function TaskModal({ mode, task, subjects, onClose, onSubmit }) {
             >
               <option value="">No Subject</option>
               {subjects.map((s) => (
-                <option key={s.id} value={s.title}>
-                  {s.title}
+                <option key={s.id} value={s.name}>
+                  {s.name}
                 </option>
               ))}
             </select>

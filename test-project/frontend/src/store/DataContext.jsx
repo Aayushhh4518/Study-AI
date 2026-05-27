@@ -27,7 +27,8 @@ const mapBackendTaskToFrontend = (backendTask) => {
   if (!backendTask) return null;
   return {
     ...backendTask,
-    id: backendTask._id,
+    id: backendTask._id || backendTask.id,
+    title: backendTask.title,
     due: backendTask.dueDate || backendTask.due,
     color: PRIORITY_COLOR[backendTask.priority] || "bg-zinc-500",
   };
@@ -37,8 +38,9 @@ const mapBackendSubjectToFrontend = (s) => {
   if (!s) return null;
   return {
     ...s,
-    id: s._id,
+    id: s._id || s.id,
     title: s.name || s.title,
+    name: s.name || s.title,
     color: s.color || "bg-indigo-500",
     progress: s.progress || 0,
     hoursStudied: s.studyHours || s.hoursStudied || 0,
@@ -100,17 +102,6 @@ const PRIORITY_COLOR = {
   Medium: "bg-amber-500",
   Low: "bg-sky-500",
 };
-
-const SUBJECT_COLORS = [
-  "bg-indigo-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-pink-500",
-  "bg-violet-500",
-  "bg-cyan-500",
-  "bg-rose-500",
-  "bg-teal-500",
-];
 
 /* ═══════════════════════════════════════════════════════════════
    HELPERS
@@ -647,15 +638,16 @@ function saveState(state) {
    SELECTORS  — pure functions, memoized in provider
 ═══════════════════════════════════════════════════════════════ */
 
-function sel_taskStats(tasks) {
-  const completed = tasks.filter((t) => t.completed).length;
-  const highPending = tasks.filter(
+function sel_taskStats(tasks = []) {
+  const safeTasks = tasks || [];
+  const completed = safeTasks.filter((t) => t.completed).length;
+  const highPending = safeTasks.filter(
     (t) => t.priority === "High" && !t.completed,
   ).length;
   return {
-    total: tasks.length,
+    total: safeTasks.length,
     completed,
-    pending: tasks.length - completed,
+    pending: safeTasks.length - completed,
     highPending,
   };
 }
@@ -669,9 +661,11 @@ function sel_focusStats(focus, analytics) {
   };
 }
 
-function sel_productivityScore(tasks, focus) {
-  const done = tasks.filter((t) => t.completed).length;
-  return clamp(Math.round(50 + done * 2 + focus.totalCompleted * 1.5), 0, 100);
+function sel_productivityScore(tasks = []) {
+  const safeTasks = tasks || [];
+  if (safeTasks.length === 0) return 0;
+  const done = safeTasks.filter((t) => t.completed).length;
+  return clamp(Math.round((done / safeTasks.length) * 100), 0, 100);
 }
 
 function sel_weeklyChartData(focus, tasks) {
@@ -750,7 +744,7 @@ function sel_searchResults(searchQuery, tasks, subjects, schedule) {
    AI INSIGHT ENGINE
 ═══════════════════════════════════════════════════════════════ */
 function generateAIInsights(state, score) {
-  const { tasks, focus, analytics, subjects, settings } = state;
+  const { tasks = [], focus, analytics, subjects = [], settings } = state;
   const insights = [];
 
   if (!settings.aiInsightsEnabled) {
@@ -980,8 +974,8 @@ export function DataProvider({ children }) {
     [state.focus, state.analytics],
   );
   const productivityScore = useMemo(
-    () => sel_productivityScore(state.tasks, state.focus),
-    [state.tasks, state.focus],
+    () => sel_productivityScore(state.tasks || []),
+    [state.tasks],
   );
   const weeklyChartData = useMemo(
     () => sel_weeklyChartData(state.focus, state.tasks),
@@ -1024,8 +1018,8 @@ export function DataProvider({ children }) {
       focusSessions: focusStats.totalCompleted,
       streak: focusStats.streak,
       longestStreak: focusStats.longestStreak,
-      totalSubjects: state.subjects.length,
-      activeSubjects: state.subjects.filter(
+      totalSubjects: (state.subjects || []).length,
+      activeSubjects: (state.subjects || []).filter(
         (s) => s.progress > 0 && s.progress < 100,
       ).length,
       productivityScore,
@@ -1086,7 +1080,12 @@ export function DataProvider({ children }) {
 
   const toggleTask = useCallback(
     async (id) => {
-      const task = state.tasks.find((t) => t.id === id);
+      // Destructure directly from state for explicit dependencies
+      const { tasks, settings } = state;
+      const { motivationalAlerts } = settings;
+
+      const safeTasks = tasks || [];
+      const task = safeTasks.find((t) => t.id === id);
       if (!task) return;
 
       try {
@@ -1108,8 +1107,8 @@ export function DataProvider({ children }) {
           });
 
           const completedCount =
-            state.tasks.filter((t) => t.completed).length + 1;
-          if (completedCount % 5 === 0 && state.settings.motivationalAlerts) {
+            safeTasks.filter((t) => t.completed).length + 1; // Use safeTasks
+          if (completedCount % 5 === 0 && motivationalAlerts) { // Use destructured motivationalAlerts
             notify(
               `Amazing! ${completedCount} tasks completed! 🔥`,
               "custom",
@@ -1125,13 +1124,13 @@ export function DataProvider({ children }) {
             });
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Revert optimistic update on failure
         dispatch({ type: A.TASK_TOGGLE, payload: id });
         toast.error("Failed to update task status.");
       }
     },
-    [state.tasks, state.settings.motivationalAlerts, notify, playSound],
+    [state.tasks, state.settings.motivationalAlerts, notify, playSound, dispatch], // Updated dependency array
   );
 
   const editTask = useCallback(

@@ -455,7 +455,7 @@ export default function TopNavbar() {
     }
 
     const safeRecents = Array.isArray(recentSearches) ? recentSearches : [];
-    const { _isRecent, _key, icon, ...itemToSave } = item;
+    const { _isRecent: _, _key: __, icon: _icon, ...itemToSave } = item;
     const newRecents = [
       itemToSave,
       ...safeRecents.filter((i) =>
