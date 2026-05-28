@@ -9,6 +9,7 @@ const navItems = [
   { name: "Analytics", path: "/analytics" },
   { name: "Schedule", path: "/schedule" },
   { name: "Settings", path: "/settings" },
+  { name: "AI Planner", path: "/ai-planner" },
 ];
 
 export default function Sidebar() {

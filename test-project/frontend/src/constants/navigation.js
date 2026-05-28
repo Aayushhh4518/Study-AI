@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Settings,
   TimerReset,
+  BrainCircuit,
 } from "lucide-react";
 
 export const navigationItems = [
@@ -44,4 +45,11 @@ export const navigationItems = [
     path: "/settings",
     icon: Settings,
   },
+  {
+    title: "AI Planner",
+    path: "/ai-planner",
+    icon: BrainCircuit
+
+
+  }
 ];

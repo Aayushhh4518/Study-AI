@@ -15,6 +15,7 @@ import {
   BarChart3,
   BookOpen,
   Brain,
+  BrainCircuit,
   CalendarDays,
   CheckSquare,
   ChevronRight,
@@ -34,6 +35,12 @@ const navItems = [
   { name: "Focus", path: "/focus", icon: Brain },
   { name: "Analytics", path: "/analytics", icon: BarChart3 },
   { name: "Schedule", path: "/schedule", icon: CalendarDays },
+
+  {
+    name: "AI Planner",
+    path: "/ai-planner",
+    icon: BrainCircuit,
+  },
   { name: "Settings", path: "/settings", icon: Settings },
 ];
 

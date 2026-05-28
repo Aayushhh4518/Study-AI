@@ -15,6 +15,9 @@ import FocusTimer from "./pages/FocusTimer";
 import Schedule from "./pages/Schedule";
 import Settings from "./pages/Settings";
 import Subjects from "./pages/Subjects";
+import AIPlanner from "./pages/AIPlanner";
+
+
 import Tasks from "./pages/Tasks";
 import { DataProvider } from "./store/DataContext";
 
@@ -34,6 +37,7 @@ function App() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="ai-planner" element={<AIPlanner />} />
           </Route>
         </Routes>
       </Router>

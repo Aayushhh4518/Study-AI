@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock3,
   Flame,
+  Cpu,
   Plus,
   Sparkles,
   TrendingUp,
@@ -236,6 +237,13 @@ export default function Dashboard() {
       path: "/schedule",
       color: "text-violet-400",
       bg: "bg-violet-500/10 border-violet-500/20",
+    },
+    {
+      label: "AI Planner",
+      icon: Cpu,
+      path: "/ai-planner",
+      color: "text-indigo-400",
+      bg: "bg-indigo-500/10 border-indigo-500/20",
     },
   ];
 
